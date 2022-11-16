@@ -1,0 +1,27 @@
+version: '3'
+
+services:
+  backend: 
+    build: ./
+    restart: always
+    ports:
+      - "8888:8081"
+    depends_on:
+      - mongo
+    environment:
+      MONGO_USER: mdbuser
+      MONGO_PASSWORD: password
+  mongo:
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mdbuser
+      MONGO_INITDB_ROOT_PASSWORD: password
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - "8899:8080"
+  nginx:
+    image: nginx:alpine
+
