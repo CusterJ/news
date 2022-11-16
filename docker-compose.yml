@@ -11,6 +11,7 @@ services:
     environment:
       MONGO_USER: mdbuser
       MONGO_PASSWORD: password
+      MONGO_URL: mongodb://mdbuser:password@mongo:27017/
   mongo:
     image: mongo
     restart: always
@@ -22,6 +23,6 @@ services:
     restart: always
     ports:
       - "8899:8080"
-  nginx:
-    image: nginx:alpine
+  # nginx:
+  #   image: nginx:alpine
 

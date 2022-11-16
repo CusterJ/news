@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/julienschmidt/httprouter"
@@ -23,9 +24,10 @@ func main() {
 	GetArticles(GetNewsList(NewsQuery(NewsQuantity, SkipNews, UntilDate)))
 
 	// MONGO CONNECTION
+	MONGO_URL := os.Getenv("MONGO_URL")
 	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1)
 	clientOptions := options.Client().
-		ApplyURI(MongoDB).
+		ApplyURI(MONGO_URL).
 		SetServerAPIOptions(serverAPIOptions)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
