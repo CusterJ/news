@@ -67,6 +67,6 @@ func main() {
 	router.GET("/api/v1/newslist", server.GetNews)
 
 	// start server
-	fmt.Println("Setrver start at port 8081")
-	log.Fatal(http.ListenAndServe(":8081", router))
+	fmt.Println("Setrver start at port 8088")
+	log.Fatal(http.ListenAndServe(":8088", router))
 }
