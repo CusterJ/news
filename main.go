@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/joho/godotenv"
 	"github.com/julienschmidt/httprouter"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -22,9 +23,10 @@ var News []Article
 
 func main() {
 	GetArticles(GetNewsList(NewsQuery(NewsQuantity, SkipNews, UntilDate)))
-
+	godotenv.Load(".env")
 	// MONGO CONNECTION
 	MONGO_URL := os.Getenv("MONGO_URL")
+	fmt.Println("Mongo URL = ", MONGO_URL)
 	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1)
 	clientOptions := options.Client().
 		ApplyURI(MONGO_URL).

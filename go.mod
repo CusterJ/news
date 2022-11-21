@@ -4,6 +4,8 @@ go 1.19
 
 require go.mongodb.org/mongo-driver v1.11.0
 
+require github.com/joho/godotenv v1.4.0 // indirect
+
 require (
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
