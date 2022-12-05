@@ -86,17 +86,18 @@ func DeleteAllArticles() (string, error) {
 func UpdateOne(a Article) error {
 	fmt.Println("UpdateOne start", a)
 	opts := options.Update().SetUpsert(true)
-	// filter := bson.D{{"data.content.id", a.Data.Content.Id}}
-	filter := bson.D{{Key: "_id", Value: "415695b0-0dec-4d01-b8d7-e2c7ba7700ce"}}
+	filter := bson.D{{Key: "data.content.id", Value: a.Data.Content.Id}}
+	// filter := bson.D{{Key: "_id", Value: "415695b0-0dec-4d01-b8d7-e2c7ba7700ce"}}
 
 	fmt.Println("Filter", filter)
-	// update := bson.D{{"$set", a}}
-	update := bson.D{{Key: "$set", Value: bson.D{{Key: "email", Value: "newemail@example.com"}}}}
+	update := bson.D{{Key: "$set", Value: a}}
+	// update := bson.D{{Key: "$set", Value: bson.D{{Key: "email", Value: "newemail@example.com"}}}}
 	result, err := Coll.UpdateOne(context.TODO(), filter, update, opts)
 	if err != nil {
 		return err
 	}
-	fmt.Println("UpdateOne Result: ", result)
+	fmt.Printf("func Find one:\n Matched %v\n Modified %v\n Upserted %v\n UpsertedID %v\n",
+		result.MatchedCount, result.ModifiedCount, result.UpsertedCount, result.UpsertedID)
 	return nil
 }
 
@@ -122,7 +123,7 @@ func (ar *ArticleRepo) BulkWrite(a []Article) error {
 
 func (ar *ArticleRepo) GetNewsFromDB() []Article {
 	// sort := desc
-	var limit int64 = 3
+	var limit int64 = 15
 	var skip int64 = 0
 	opts := options.Find().SetSort(bson.D{{Key: "_id", Value: -1}}).SetLimit(limit).SetSkip(skip)
 	cursor, err := ar.coll.Find(context.TODO(), bson.D{}, opts)

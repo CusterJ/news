@@ -10,7 +10,7 @@ docker-compose up
 
 docker-compose down
 
-# Run local with separeted backend
+<!-- Run dev -->
 
 docker-compose -f docker-compose.local.yml up -d
 

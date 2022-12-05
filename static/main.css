@@ -1,0 +1,131 @@
+h1{
+    font-weight: 700;
+    color: rgb(245, 161, 4);
+    font-size: 3vw;
+    padding-left: 4vw;
+}
+
+
+nav{
+    background: black;
+}
+
+nav ul{
+    display: inline-flex;
+    flex-wrap: wrap;
+    padding: 0;
+    margin: 0;
+    padding: 1vw;
+}
+
+nav ul li a{
+    text-decoration: none;
+    color: wheat;
+    vertical-align: sub;
+    font-size: 2.5vw;
+}
+
+nav ul li a:hover{
+    text-decoration: none;
+    color: rgb(245, 161, 4);
+    text-decoration-line: underline;
+}
+
+ul li{
+    list-style-type: none;
+    margin-bottom: 10px;
+    margin-left: 3vw;
+    font-size: 1.5vw;
+}
+
+ul {
+    list-style: none;
+    padding: 0;
+  }
+ 
+.article {
+    padding: 5px 2vw;
+    background-color: #EEEEEE;
+    border: 1px solid #DDDDDD;
+  }
+.articlecontent {
+  padding: 1vw 3vw 50px 1vw;
+  font-size: 2vw;
+    }
+
+.editarticle {
+    display: flex;
+}
+
+.editarticle form {
+    width: 100%;
+}
+
+.editarticle label {
+    display: block;
+}
+
+.editarticle input {
+    display: block;
+    width: 85%;
+}
+
+.editarticle textarea {
+    display: block;
+    width: 85%;
+    height: 600px;
+}
+
+.savearticle {
+    background-color: blue;
+    color: white;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.savearticle:hover {
+    cursor: pointer;
+    background-color: green;
+}
+
+.btn {
+    cursor: pointer;
+    display: inline-block;
+    text-align: center;
+    text-decoration: none;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+}
+    
+.btn:hover {
+    background-color: #fff;
+}
+
+.edit{
+    display: inline-flex;
+    background-image:url('images/icons/icons8-pencil-50.png');
+    background-size: 100%;
+    background-repeat: no-repeat;
+    width: 50px;
+    height: 50px;
+ } 
+
+@media (min-width: 768px) {
+    .button-74 {
+    min-width: 120px;
+    padding: 0 25px;
+    }
+}
+
+.footer {
+    position: fixed;
+    height: 50px;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    background-color: rgb(65, 64, 64);
+    color: white;
+    text-align: center;
+    padding: 20px;
+    }

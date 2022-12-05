@@ -1,0 +1,16 @@
+{{define "news"}}
+<!DOCTYPE html>
+<html lang="en">
+{{template "headHTML" .title }}
+<body>
+    {{template "headerHTML"}}
+    <h1>{{.title}}</h1>
+    <ul>
+    {{range .data.Data}}
+      <li class="article"><a href="/article/{{ .Data.Content.Id }}">{{ .Data.Content.Title.Short }}</a></li>
+    {{end}}
+    </ul>
+    {{template "footerHTML"}}
+</body>
+</html>
+{{end}}
