@@ -8,6 +8,17 @@ h1{
 
 nav{
     background: black;
+    display: inline-flex;
+    width: 100%;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 5px;
+}
+
+.search {
+    font-size: 1.5vw;
+    padding: 5px;
 }
 
 nav ul{
@@ -22,7 +33,7 @@ nav ul li a{
     text-decoration: none;
     color: wheat;
     vertical-align: sub;
-    font-size: 2.5vw;
+    font-size: 2vw;
 }
 
 nav ul li a:hover{

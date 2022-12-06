@@ -1,0 +1,20 @@
+{{define "search"}}
+<!DOCTYPE html>
+<html lang="en">
+{{template "headHTML" .title }}
+<body>
+    {{template "headerHTML"}}
+    <h1>{{.title}}</h1>
+    <ul>
+    {{if .data}}
+    {{range .}}
+        <li class="article"><a href="/article/{{ .Data.Content.Id }}">{{ .Data.Content.Title.Short }}</a></li>
+        {{end}}
+    {{else}}
+      <h2>No results found</h2>
+    {{end}}
+    </ul>
+    {{template "footerHTML"}}
+</body>
+</html>
+{{end}}

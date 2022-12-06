@@ -81,11 +81,36 @@ func main() {
 	router.GET("/article/:id", GetOneArticlePage)
 	router.GET("/api/v1/newslist", server.GetNews)
 	router.GET("/news", server.GetNewsPage)
+	router.GET("/search", server.Search)
 	router.POST("/article/:id", EditArticle)
 
 	// start server
 	fmt.Println("Setrver start at port 8088")
 	log.Fatal(http.ListenAndServe(":8088", router))
+}
+
+func (s *Server) Search(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	tmpl, err := template.ParseFiles("static/pages/search.html", "static/partials/header.html", "static/partials/footer.html", "static/partials/head.html")
+	if err != nil {
+		http.Error(w, "Something went wrong", http.StatusInternalServerError)
+		return
+	}
+	query := r.URL.Query().Get("query")
+	td := TemplateData{"title": "Searching for: " + query}
+	td["data"] = []Article{}
+	fmt.Printf("func handler Search for query %s\n", query)
+	// resp := &NewsRespons{}
+	// resp.Message = "OK"
+	// resp.Data = s.ar.GetNewsFromDB()
+	// fmt.Println("func GetNewsPage, print first article ID ", resp.Data[0].Data.Content.Id)
+	// fmt.Println(resp.Data[len(resp.Data)-1].Data.Content.Title.Short)
+	// w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	// td["data"] = resp
+	err = tmpl.ExecuteTemplate(w, "search", td)
+	if err != nil {
+		http.Error(w, "Something went wrong", http.StatusInternalServerError)
+		log.Fatal(err)
+	}
 }
 
 func EditArticle(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
