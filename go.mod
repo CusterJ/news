@@ -4,7 +4,11 @@ go 1.19
 
 require go.mongodb.org/mongo-driver v1.11.0
 
-require github.com/joho/godotenv v1.4.0 // indirect
+require (
+	github.com/elastic/elastic-transport-go/v8 v8.0.0-20211216131617-bbee439d559c // indirect
+	github.com/elastic/go-elasticsearch/v8 v8.5.0 // indirect
+	github.com/joho/godotenv v1.4.0 // indirect
+)
 
 require (
 	github.com/golang/snappy v0.0.4 // indirect
