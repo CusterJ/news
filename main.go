@@ -29,13 +29,10 @@ func main() {
 	GetArticles(GetNewsList(NewsQuery(NewsQuantity, SkipNews, UntilDate)))
 	// LOAD ENV
 	godotenv.Load(".env")
-	// TEMPLATE
-	// Tmpl, err := template.ParseGlob("static/*")
-	// if err != nil {
-	// 	panic(err.Error())
-	// }
-	// MONGO CONNECTION
 	MONGO_URL := os.Getenv("MONGO_URL")
+	ES_ARTS = os.Getenv("ES_ARTS")
+
+	// MONGO CONNECTION
 	fmt.Println("Mongo URL = ", MONGO_URL)
 	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1)
 	clientOptions := options.Client().
@@ -64,6 +61,12 @@ func main() {
 	err = ar.BulkWrite(News)
 	if err != nil {
 		fmt.Println("BulkWrite to DB Error", err)
+	}
+
+	// Elastic
+	err = EsInsertBulk(News)
+	if err != nil {
+		fmt.Println("func EsInsertBulk error")
 	}
 
 	//ROUTER
@@ -96,16 +99,12 @@ func (s *Server) Search(w http.ResponseWriter, r *http.Request, ps httprouter.Pa
 		return
 	}
 	query := r.URL.Query().Get("query")
-	td := TemplateData{"title": "Searching for: " + query}
-	td["data"] = []Article{}
 	fmt.Printf("func handler Search for query %s\n", query)
-	// resp := &NewsRespons{}
-	// resp.Message = "OK"
-	// resp.Data = s.ar.GetNewsFromDB()
-	// fmt.Println("func GetNewsPage, print first article ID ", resp.Data[0].Data.Content.Id)
-	// fmt.Println(resp.Data[len(resp.Data)-1].Data.Content.Title.Short)
-	// w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	// td["data"] = resp
+	td := TemplateData{"title": "Searching for: " + query}
+	td["data"], err = EsSearchArticle(query)
+	if err != nil {
+		log.Fatal(err)
+	}
 	err = tmpl.ExecuteTemplate(w, "search", td)
 	if err != nil {
 		http.Error(w, "Something went wrong", http.StatusInternalServerError)

@@ -7,7 +7,7 @@
     <h1>{{.title}}</h1>
     <ul>
     {{if .data}}
-    {{range .}}
+    {{range .data}}
         <li class="article"><a href="/article/{{ .Data.Content.Id }}">{{ .Data.Content.Title.Short }}</a></li>
         {{end}}
     {{else}}
