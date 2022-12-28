@@ -1,0 +1,20 @@
+{{ define "paginationHTML" }}
+{{ if .pages }}
+{{ $cpage := .current }}
+<hr>
+<div class="pagination">
+    <!-- {{ printf "%#v" . }} -->
+    {{ range .pages }}
+    {{ if eq . $cpage }}
+    <div class="page cpage"><a href="?page={{ . }}" class="page">
+        {{ . }}
+    </a></div>
+    {{ else }}
+    <div class="page"><a href="?page={{ . }}" class="page">
+        {{ . }}
+    </a></div>
+    {{ end}}
+    {{ end }}
+</div>
+{{ end }}
+{{ end }}
