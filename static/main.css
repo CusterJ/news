@@ -13,7 +13,6 @@ nav{
     justify-content: space-between;
     flex-wrap: wrap;
     align-items: center;
-    padding: 5px;
 }
 
 .search {
@@ -24,9 +23,13 @@ nav{
 nav ul{
     display: inline-flex;
     flex-wrap: wrap;
-    padding: 0;
     margin: 0;
-    padding: 1vw;
+    padding: 1.5vw;
+}
+
+nav ul li {
+    margin: auto;
+    padding-left: 3vw;
 }
 
 nav ul li a{
@@ -51,14 +54,24 @@ ul li{
 
 ul {
     list-style: none;
-    padding: 0;
+    padding: 0 0 20px;
   }
+
+hr {
+    width: 90%;
+}
  
-.article {
+.articlelist {
     padding: 5px 2vw;
     background-color: #EEEEEE;
     border: 1px solid #DDDDDD;
-  }
+}
+
+.article {
+    text-decoration: none;
+    color: rgb(0, 0, 0);
+
+}
 .articlecontent {
   padding: 1vw 3vw 50px 1vw;
   font-size: 2vw;
@@ -120,23 +133,55 @@ ul {
     background-repeat: no-repeat;
     width: 50px;
     height: 50px;
- } 
+} 
 
-@media (min-width: 768px) {
-    .button-74 {
-    min-width: 120px;
-    padding: 0 25px;
-    }
+.pagination {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 5px;
+    margin: 10px;
+    font-size: 2vw;
+    padding-bottom: 40px;
 }
 
-.footer {
+.page {
+    margin: auto 5px;
+    text-decoration: none;
+    color: rgb(245, 161, 4);
+}
+
+.page:hover {
+    margin: auto 5px;
+    text-decoration: none;
+    color: rgb(245, 161, 4);
+    text-shadow: 1px 1px 2px pink;    
+}
+
+.cpage {
+    font-size: 3vw;
+    text-shadow: 1px 1px 2px pink;
+}
+
+
+footer {
     position: fixed;
-    height: 50px;
+    height: 40px;
     left: 0;
     bottom: 0;
     width: 100%;
-    background-color: rgb(65, 64, 64);
-    color: white;
+}
+
+.footer {
+    height: 100%;
+    padding: 0 5px 0 5px;
+    margin: 0 5px 0 5px;
     text-align: center;
-    padding: 20px;
+    background: rgb(2,0,36);
+    /* background: radial-gradient(circle, rgba(2,0,36,1) 21%, rgba(128,75,8,1) 90%, rgba(111,104,44,0.8561625333727241) 100%); */
     }
+
+.footertext {
+    padding: 5px;
+    color: wheat;
+}

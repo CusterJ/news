@@ -1,6 +1,7 @@
 package main
 
 import (
+	"News/domain"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,8 +11,8 @@ import (
 
 // Marshal API writer Newslist struct
 type NewsRespons struct {
-	Message string    `json:"message,omitempty"`
-	Data    []Article `json:"data,omitempty"`
+	Message string           `json:"message,omitempty"`
+	Data    []domain.Article `json:"data,omitempty"`
 }
 
 // respons json

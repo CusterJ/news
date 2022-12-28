@@ -8,7 +8,7 @@
     <ul>
     {{if .data}}
     {{range .data}}
-        <li class="article"><a href="/article/{{ .Data.Content.Id }}">{{ .Data.Content.Title.Short }}</a></li>
+        <li class="articlelist"><a class="article" href="/article/{{ .Data.Content.Id }}">{{ .Data.Content.Title.Short }}</a></li>
         {{end}}
     {{else}}
       <h2>No results found</h2>

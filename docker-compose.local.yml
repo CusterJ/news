@@ -35,6 +35,7 @@ services:
       # ME_CONFIG_MONGODB_URL: ${MONGO_URL}
     depends_on:
       - mongo
+      - es01
   es01:
     image: elasticsearch:8.5.2
     ports:
@@ -67,12 +68,13 @@ services:
     #   memlock:
     #     soft: -1
     #     hard: -1
-    # volumes:
-    #   - elasticsearch:/data/es
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
     
   # nginx:
   #   image: nginx:alpine
 
 volumes:
   mongodb_data:
-  # elasticsearch:
+  es_data:
+    driver: local

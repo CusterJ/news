@@ -1,11 +1,16 @@
 package main
 
 import (
+	"News/db/es"
+	"News/db/mdb"
+	"News/domain"
 	"context"
 	"fmt"
 	"log"
+	"math"
 	"net/http"
 	"os"
+	"strconv"
 	"text/template"
 	"time"
 
@@ -15,12 +20,18 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+const PerPage int = 15
+
 var NewsQuantity int = 15
 var SkipNews int = 0
 var UntilDate int = 1666056885
-var Arts []interface{}
 var Coll *mongo.Collection
-var News []Article
+var News []domain.Article
+
+type Articles struct {
+	Arts  []domain.Article
+	Total int
+}
 
 type TemplateData map[string]interface{}
 
@@ -30,7 +41,7 @@ func main() {
 	// LOAD ENV
 	godotenv.Load(".env")
 	MONGO_URL := os.Getenv("MONGO_URL")
-	ES_ARTS = os.Getenv("ES_ARTS")
+	// ES_ARTS := os.Getenv("ES_ARTS")
 
 	// MONGO CONNECTION
 	fmt.Println("Mongo URL = ", MONGO_URL)
@@ -45,7 +56,7 @@ func main() {
 		log.Fatal(err)
 	}
 	Coll = client.Database("point").Collection("articles")
-
+	article := mdb.NewArticleRepo(Coll)
 	// res, err := DeleteAllArticles()
 	// if err != nil {
 	// 	fmt.Println(res, err)
@@ -57,20 +68,19 @@ func main() {
 	// 	fmt.Println("Save to DB Error", err)
 	// }
 
-	ar := NewArticleRepo(Coll)
-	err = ar.BulkWrite(News)
+	err = article.BulkWrite(News)
 	if err != nil {
 		fmt.Println("BulkWrite to DB Error", err)
 	}
 
 	// Elastic
-	err = EsInsertBulk(News)
+	err = es.EsInsertBulk(News)
 	if err != nil {
 		fmt.Println("func EsInsertBulk error")
 	}
 
 	//ROUTER
-	server := NewServer(ar)
+	server := NewServer(article)
 	router := httprouter.New()
 	// static files
 	router.ServeFiles("/static/*filepath", http.Dir("./static/"))
@@ -82,10 +92,10 @@ func main() {
 	router.POST("/form", Form)
 	router.GET("/api/v1/article/:id", GetOneArticle)
 	router.GET("/article/:id", GetOneArticlePage)
+	router.POST("/article/:id", EditArticle)
 	router.GET("/api/v1/newslist", server.GetNews)
 	router.GET("/news", server.GetNewsPage)
 	router.GET("/search", server.Search)
-	router.POST("/article/:id", EditArticle)
 
 	// start server
 	fmt.Println("Setrver start at port 8088")
@@ -101,7 +111,7 @@ func (s *Server) Search(w http.ResponseWriter, r *http.Request, ps httprouter.Pa
 	query := r.URL.Query().Get("query")
 	fmt.Printf("func handler Search for query %s\n", query)
 	td := TemplateData{"title": "Searching for: " + query}
-	td["data"], err = EsSearchArticle(query)
+	td["data"], err = es.EsSearchArticle(query)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -121,24 +131,24 @@ func EditArticle(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	title := r.PostForm.Get("title")
 	description := r.PostForm.Get("description")
 	id := ps.ByName("id")
-	// title := r.FormValue("title")
-	// description := r.FormValue("description")
 	if title == "" || description == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, "No title or description.\n Title: %s\n Description: %s", title, description)
 		return
 	}
-	// fmt.Println("func Form data: ", id, title, description)
-	art, ok := GetArticleById(id)
+	article := mdb.NewArticleRepo(Coll)
+	art, ok := article.GetArticleById(id)
 	if !ok {
 		w.WriteHeader(http.StatusNoContent)
 	}
 	art.Data.Content.Description.Long = description
 	art.Data.Content.Title.Short = title
-	err := UpdateOne(art)
+	err := article.UpdateOne(art)
 	if err != nil {
 		fmt.Println("func EditArticle => UpdateOne article error: ", err)
 	}
+	err = es.EsUpdateOne(art)
+	Check(err)
 	http.Redirect(w, r, "/article/"+id, http.StatusSeeOther)
 }
 
@@ -155,7 +165,9 @@ func GetOneArticlePage(w http.ResponseWriter, r *http.Request, ps httprouter.Par
 	}
 	id := ps.ByName("id")
 	fmt.Println("func handler GetOneArticlePage with id: ", id)
-	res, ok := GetArticleById(id)
+
+	article := mdb.NewArticleRepo(Coll)
+	res, ok := article.GetArticleById(id)
 	if !ok {
 		w.WriteHeader(http.StatusNoContent)
 		return
@@ -168,23 +180,78 @@ func GetOneArticlePage(w http.ResponseWriter, r *http.Request, ps httprouter.Par
 }
 
 func (s *Server) GetNewsPage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	tmpl, err := template.ParseFiles("static/pages/news.html", "static/partials/header.html", "static/partials/footer.html", "static/partials/head.html")
+	tmpl, err := template.ParseFiles("static/pages/news.html", "static/partials/header.html", "static/partials/footer.html",
+		"static/partials/head.html", "static/partials/pagination.html")
 	if err != nil {
 		http.Error(w, "Something went wrong", http.StatusInternalServerError)
 		return
 	}
+
+	currentPage := 0
+
+	cpage := r.URL.Query().Get("page")
+	if cpage != "" {
+		currentPage, _ = strconv.Atoi(cpage)
+	}
+	take, _ := strconv.Atoi(os.Getenv("TAKE"))
+
+	skip := 0
+	if currentPage > 1 {
+		skip = (currentPage - 1) * take
+	}
+
+	fmt.Printf("GetNewsPage -> take: %v, page: %v, skip: %v \n", take, currentPage, skip)
+
 	td := TemplateData{"title": "News, Analysis, Politics, Business, Technology"}
 	fmt.Println("func handler GetNewsPage ")
 	resp := &NewsRespons{}
 	resp.Message = "OK"
-	resp.Data = s.ar.GetNewsFromDB()
-	fmt.Println("func GetNewsPage, print first article ID ", resp.Data[0].Data.Content.Id)
-	fmt.Println(resp.Data[len(resp.Data)-1].Data.Content.Title.Short)
+
+	rd, err := s.ar.ArticleList(r.Context(), &domain.ArticlesRequest{
+		Skip:  skip,
+		Limit: take,
+	})
+	if err != nil {
+		http.Error(w, "Something went wrong", http.StatusInternalServerError)
+		return
+	}
+
+	resp.Data = rd.Data
+
+	pages := Pagination(currentPage, int(rd.Count))
+	pg := map[string]interface{}{"current": cpage, "pages": pages}
+	td["pagination"] = pg
+
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	td["data"] = resp
+	Check(err)
 	err = tmpl.ExecuteTemplate(w, "news", td)
 	if err != nil {
 		http.Error(w, "Something went wrong", http.StatusInternalServerError)
-		log.Fatal(err)
+		fmt.Printf("func GetNewsPage -> ExecuteTemplate error: %v", err)
+	}
+}
+
+func Pagination(page, total int) (pagelist []string) {
+	var take, allPages, skip int
+	take, _ = strconv.Atoi(os.Getenv("TAKE"))
+	allPages = int(math.Ceil(float64(total) / float64(take)))
+	// fmt.Printf("total/ take type is %T \n %v / %v = %v \n", total/take, total, take, total/take)
+	if page > 0 {
+		skip = (page - 1) * take
+	}
+	if skip > total {
+		skip = 0
+	}
+	for i := 1; i <= allPages; i++ {
+		pagelist = append(pagelist, strconv.Itoa(i))
+	}
+	// fmt.Printf("total= %v, take = %v, page = %v, allPages = %v, skip = %v \n", total, take, page, allPages, skip)
+	return
+}
+
+func Check(err error) {
+	if err != nil {
+		log.Print(err)
 	}
 }

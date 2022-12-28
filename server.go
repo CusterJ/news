@@ -1,6 +1,8 @@
 package main
 
 import (
+	"News/db/mdb"
+	"News/domain"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -10,10 +12,11 @@ import (
 )
 
 type Server struct {
-	ar *ArticleRepo
+	ar       *mdb.ArticleRepo
+	Articles *Articles
 }
 
-func NewServer(a *ArticleRepo) *Server {
+func NewServer(a *mdb.ArticleRepo) *Server {
 	return &Server{ar: a}
 }
 
@@ -69,14 +72,15 @@ func (s *Server) GetNews(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 func GetOneArticle(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	id := ps.ByName("id")
 	fmt.Println(id)
-	res, ok := GetArticleById(id)
+	article := mdb.NewArticleRepo(Coll)
+	res, ok := article.GetArticleById(id)
 	if !ok {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
-	resp := &ArticleRespons{}
+	resp := &domain.ArticleResponse{}
 	resp.Message = "OK"
 	resp.Data = res
 	jsonResp, err := json.Marshal(resp)
