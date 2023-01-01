@@ -1,4 +1,4 @@
-package main
+package newsparser
 
 import (
 	"News/domain"
@@ -9,11 +9,9 @@ import (
 	"strings"
 )
 
-// Marshal API writer Newslist struct
-type NewsRespons struct {
-	Message string           `json:"message,omitempty"`
-	Data    []domain.Article `json:"data,omitempty"`
-}
+const Url string = "https://point.md/graphql"
+
+var News []domain.Article
 
 // respons json
 type Respons struct {

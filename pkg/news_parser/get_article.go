@@ -1,4 +1,4 @@
-package main
+package newsparser
 
 import (
 	"News/domain"

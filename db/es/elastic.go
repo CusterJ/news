@@ -16,9 +16,9 @@ type Articles struct {
 	Total    int
 }
 
-type Elastic struct {
-	Url   string
-	Index string
+type ElasticRepo struct {
+	url   string
+	index string
 }
 
 type EsIndexArticle struct {
@@ -244,10 +244,10 @@ func EsSearchArticle(s string) (arts []domain.Article, err error) {
 	return arts, nil
 }
 
-func (e *Elastic) ElasticReq() (*Elastic, error) {
-	return &Elastic{
-		Url:   os.Getenv("ES_URL"),
-		Index: os.Getenv("ES_INDEX"),
+func (e *ElasticRepo) ElasticReq() (*ElasticRepo, error) {
+	return &ElasticRepo{
+		url:   os.Getenv("ES_URL"),
+		index: os.Getenv("ES_INDEX"),
 	}, nil
 }
 
@@ -257,10 +257,10 @@ func EsCreateIndex(index string) error {
 }
 
 // Mapping
-func (e *Elastic) EsPutIndex() error {
+func (e *ElasticRepo) EsPutIndex() error {
 	// !TODO mapping
 	url, _ := e.ElasticReq()
-	mapUrl := url.Url + url.Index + "_mapping/"
+	mapUrl := url.url + url.index + "_mapping/"
 	// {
 	// 	"settings": {
 	// 		"number_of_shards": 1,
