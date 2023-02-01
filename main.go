@@ -10,6 +10,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -21,7 +23,6 @@ import (
 const PerPage int = 15
 
 func main() {
-
 	// LOAD ENV
 	godotenv.Load(".env")
 	MONGO_URL := os.Getenv("MONGO_URL")
@@ -54,10 +55,8 @@ func main() {
 
 	// articles.DeleteAllArticles()
 
-	// GET ARTICLES
+	// GET ARTICLES WITH PARSER
 	parser := newsparser.NewWorker(articles, esArticles)
-
-	// PARSE ARTICLES FROM SITE
 	go parser.StartParser()
 
 	//ROUTER
@@ -82,11 +81,42 @@ func main() {
 
 	// start server
 	fmt.Println("Setrver start at port 8088")
-	log.Fatal(http.ListenAndServe(":8088", router))
+	// log.Fatal(http.ListenAndServe(":8088", router))
+
+	// ==============================
+	// gracefull shutdown http server
+	// ==============================
+	gracefulShutdown := make(chan os.Signal, 1)
+	signal.Notify(gracefulShutdown, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+
+	httpServer := http.Server{
+		Addr:    ":8088",
+		Handler: router,
+	}
+
+	go func() {
+		sigint := make(chan os.Signal, 1)
+		signal.Notify(sigint, os.Interrupt)
+		<-sigint
+		if err := httpServer.Shutdown(context.Background()); err != nil {
+			log.Printf("HTTP Server Shutdown Error: %v", err)
+		}
+
+		close(gracefulShutdown)
+	}()
+
+	if err := httpServer.ListenAndServe(); err != http.ErrServerClosed {
+		log.Fatalf("HTTP server ListenAndServe Error: %v", err)
+	}
+
+	<-gracefulShutdown
+	// ==============================
+	defer time.Sleep(3 * time.Second)
+	fmt.Println("Shutdown gracefully")
 }
 
 func Check(err error) {
 	if err != nil {
-		log.Print(err)
+		fmt.Println(err)
 	}
 }
