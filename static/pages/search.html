@@ -3,12 +3,12 @@
 <html lang="en">
 {{template "headHTML" .title }}
 <body>
-    {{template "headerHTML"}}
+    {{template "headerHTML" .username}}
     <h1>{{.title}}</h1>
     <ul>
     {{if .data}}
     {{range .data}}
-        <li class="articlelist"><a class="article" href="/article/{{ .Data.Content.Id }}">{{ .Data.Content.Title.Short }}</a></li>
+        <li class="articlelist"><a class="article" href="/article/{{ .Id }}">{{ .Title.Short }}</a></li>
         {{end}}
     {{else}}
       <h2>No results found</h2>

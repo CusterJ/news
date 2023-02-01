@@ -1,37 +1,18 @@
 package domain
 
-// Marshal API writer Article struct
-type ArticleResponse struct {
-	Message string  `json:"message,omitempty"`
-	Data    Article `json:"data,omitempty"`
-}
-
-type ArticlesResponse struct {
-	Data  []Article
-	Count int64
-}
-
-type ArticlesRequest struct {
-	Skip  int
-	Limit int
-}
-
-// Point Respons json
 type Article struct {
-	Data ArticleData `json:"data"`
+	Id          string      `json:"id"`
+	URL         string      `json:"url"`
+	Title       Title       `json:"title"`
+	Description Description `json:"description"`
+	Dates       Dates       `json:"dates"`
 }
-type ArticleData struct {
-	Content Content `json:"content"`
-}
-type Content struct {
-	Id          string       `json:"id"`
-	URL         string       `json:"url"`
-	Title       ArticleTitle `json:"title"`
-	Description Description  `json:"description"`
-}
-type ArticleTitle struct {
+type Title struct {
 	Short string `json:"short"`
 }
 type Description struct {
 	Long string `json:"long"`
+}
+type Dates struct {
+	Posted int64 `json:"posted"`
 }

@@ -3,7 +3,6 @@ package main
 import (
 	"News/db/es"
 	"News/db/mdb"
-	"News/domain"
 	newsparser "News/pkg/news_parser"
 	"News/server"
 	"context"
@@ -21,23 +20,13 @@ import (
 
 const PerPage int = 15
 
-var News []domain.Article
-
-type Articles struct {
-	Arts  []domain.Article
-	Total int
-}
-
 func main() {
-	// GET ARTICLES
-	newsparser.Start()
+
 	// LOAD ENV
 	godotenv.Load(".env")
 	MONGO_URL := os.Getenv("MONGO_URL")
-	// ES_ARTS := os.Getenv("ES_ARTS")
 
 	// MONGO CONNECTION
-	fmt.Println("Mongo URL = ", MONGO_URL)
 	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1)
 	clientOptions := options.Client().
 		ApplyURI(MONGO_URL).
@@ -45,35 +34,33 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	client, err := mongo.Connect(ctx, clientOptions)
-	if err != nil {
-		log.Fatal(err)
-	}
-	Coll := client.Database("point").Collection("articles")
-	article := mdb.NewArticleRepo(Coll)
-	// res, err := DeleteAllArticles()
-	// if err != nil {
-	// 	fmt.Println(res, err)
-	// }
-	// fmt.Println("Documents deleted: ", res)
+	Check(err)
 
-	// err = InsertArticles(Arts)
-	// if err != nil {
-	// 	fmt.Println("Save to DB Error", err)
-	// }
+	// MONGO COLLECTIONS
+	database := client.Database("point")
 
-	err = article.BulkWrite(News)
-	if err != nil {
-		fmt.Println("BulkWrite to DB Error", err)
-	}
+	articlesColl := database.Collection("articles")
+	articles := mdb.NewArticleRepo(articlesColl)
 
-	// Elastic
-	err = es.EsInsertBulk(News)
-	if err != nil {
-		fmt.Println("func EsInsertBulk error")
-	}
+	usersColl := database.Collection("users")
+	users := mdb.NewUserRepo(usersColl)
+
+	// ELASTIC
+	ES_ARTS := os.Getenv("ES_ARTS")
+	esArticles := es.NewElasticRepo(ES_ARTS)
+
+	// NEW SERVER
+	server := server.NewServer(articles, users, esArticles)
+
+	// articles.DeleteAllArticles()
+
+	// GET ARTICLES
+	parser := newsparser.NewWorker(articles, esArticles)
+
+	// PARSE ARTICLES FROM SITE
+	go parser.StartParser()
 
 	//ROUTER
-	server := server.NewServer(article)
 	router := httprouter.New()
 	// static files
 	router.ServeFiles("/static/*filepath", http.Dir("./static/"))
@@ -83,12 +70,15 @@ func main() {
 	router.GET("/hello/:name", server.Hello)
 	router.GET("/hi", server.Hi)
 	router.POST("/form", server.Form)
-	router.GET("/api/v1/article/:id", server.GetOneArticle)
 	router.GET("/article/:id", server.GetOneArticlePage)
-	router.POST("/article/:id", server.EditArticle)
-	router.GET("/api/v1/newslist", server.GetNews)
+	router.POST("/article/:id", server.Protected(server.EditArticle))
+	router.GET("/api/v1/newslist", server.Protected(server.GetNews))
+	router.GET("/api/v1/article/:id", server.Protected(server.GetOneArticle))
 	router.GET("/news", server.GetNewsPage)
 	router.GET("/search", server.Search)
+	router.GET("/login", server.GetLogin)
+	router.POST("/login", server.PostLogin)
+	router.POST("/register", server.Register)
 
 	// start server
 	fmt.Println("Setrver start at port 8088")

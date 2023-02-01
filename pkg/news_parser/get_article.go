@@ -6,19 +6,21 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
-func GetArticles(list []string) {
-	fmt.Println("func GetArticles from", list)
-	for _, id := range list {
-		GetArticle(id)
-	}
+func getArticles(list []string) (news []domain.Article) {
+	// fmt.Println("func GetArticles from", list)
 
+	for _, id := range list {
+		news = append(news, getArticle(id))
+	}
+	return
 }
 
-func GetArticle(id string) {
-	ArticlePayload := strings.NewReader(ArticleQuery(id))
+func getArticle(id string) (adb domain.Article) {
+	ArticlePayload := strings.NewReader(articleQuery(id))
 	req, err := http.NewRequest("POST", Url, ArticlePayload)
 	if err != nil {
 		fmt.Println("Wrap request error", err)
@@ -36,21 +38,27 @@ func GetArticle(id string) {
 	defer res.Body.Close()
 
 	body, _ := io.ReadAll(res.Body)
-	data := domain.Article{}
 	// fmt.Println(string(body))
+
+	data := domain.Data{}
 	err = json.Unmarshal([]byte(body), &data)
 	if err != nil {
 		fmt.Println("Unmarshaling Article error ", err)
+	}
+	// fmt.Println("func GetArticle", data.Data.Content.Title.Short)
+
+	adb.Id = data.Data.Content.Id
+	adb.URL = data.Data.Content.URL
+	adb.Title = data.Data.Content.Title
+	adb.Description = data.Data.Content.Description
+
+	// convert date from string to int64
+	dateTS, err := strconv.Atoi(data.Data.Content.Dates.Posted)
+	if err != nil {
 		return
 	}
-	News = append(News, data)
-	fmt.Println("func GetArticle", data.Data.Content.Title.Short)
-	// GetArticleById("415695b0-0dec-4d01-b8d7-e2c7ba7700ce")
-	// ok := FindAndInsert(data)
-	// fmt.Println("FindAndInsert result: ", ok)
-	// err = UpdateOne(data)
-	// if err != nil {
-	// 	fmt.Println("UpdateOne call err: ", err)
-	// 	return
-	// }
+
+	adb.Dates.Posted = int64(dateTS)
+
+	return
 }

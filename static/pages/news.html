@@ -3,11 +3,11 @@
 <html lang="en">
 {{template "headHTML" .title }}
 <body>
-    {{template "headerHTML"}}
+    {{template "headerHTML" .username}}
     <h1>{{.title}}</h1>
     <ul>
-    {{range .data.Data}}
-      <li class="articlelist"><a class="article" href="/article/{{ .Data.Content.Id }}">{{ .Data.Content.Title.Short }}</a></li>
+    {{range .data}}
+      <li class="articlelist"><a class="article" href="/article/{{ .Id }}">{{ .Title.Short }}</a></li>
     {{end}}
     </ul>
     {{template "paginationHTML" .pagination}}

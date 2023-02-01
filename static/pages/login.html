@@ -1,0 +1,35 @@
+{{ define "login"}}
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Login or register</title>
+    <link rel="shortcut icon" href="/static/images/favicon.svg">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" type="text/css" href="/static/login.css">
+</head>
+<body>
+	<div class="main">  	
+        <div class="goback"><a href="/news" class="back"><< Back to news</a></div>
+		<input type="checkbox" id="chk" aria-hidden="true">
+
+			<div class="login">
+                <form method="POST" action="/login">     
+					<label for="chk" aria-hidden="true">Login</label>
+					<input type="text" name="username" placeholder="User name" required="">
+					<input type="password" name="password" placeholder="Password" required="">
+					<button>Login</button>
+				</form>
+			</div>
+
+			<div class="register">
+                 <form method="POST" action="/register">     
+					<label for="chk" aria-hidden="true">Register</label>
+					<input type="text" name="username" placeholder="User name" required="">
+					<input type="password" name="password" placeholder="Password" required="">
+					<button>Register</button>
+				</form>
+			</div>
+	</div>
+</body>
+</html>
+{{ end }}

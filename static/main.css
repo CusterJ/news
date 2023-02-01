@@ -72,6 +72,10 @@ hr {
     color: rgb(0, 0, 0);
 
 }
+
+.articledate {
+    text-align: right;
+}
 .articlecontent {
   padding: 1vw 3vw 50px 1vw;
   font-size: 2vw;

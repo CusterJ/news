@@ -2,10 +2,17 @@
 <header>
     <nav>
         <ul>
+            <li><a href="/api/v1/newslist" class="header">API</a></li>
             <li><a href="/static/index.html" class="header">HOME</a></li>
             <li><a href="/hello/username" class="header">HELLO</a></li>
             <li><a href="/news" class="header">ARTICLES</a></li>
-            <li><a href="/api/v1/newslist" class="header">API</a></li>
+        </ul>
+        <ul>
+            {{if . }}
+            <li><a href="/login" class="login">Hello, {{.}}</a></li>
+            {{ else }}
+            <li><a href="/login" class="login">Login</a></li>
+            {{ end }}
         </ul>
         <div class="search">
             <form action="/search">

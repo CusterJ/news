@@ -16,7 +16,7 @@ type VarNews struct {
 	Lang      string `json:"lang"`
 	Take      int    `json:"take"`
 	Skip      int    `json:"skip"`
-	DateTo    int    `json:"dateTo"`
+	DateTo    int64  `json:"dateTo"`
 }
 
 // Query for get one article by ID
@@ -29,9 +29,9 @@ type VarArticle struct {
 	Id string `json:"id,omitempty"`
 }
 
-func NewsQuery(take int, skip int, dateTo int) string {
+func newsQuery(take int, skip int, dateTo int64) string {
 	q := &PointQuery{
-		Query: "query contents($projectId: String!, $lang: String = \"ru\", $take: Int = 30, $skip: Int, $dateto: Int) {\n  contents(\n    project_id: $projectId\n    lang: $lang\n    take: $take\n    skip: $skip\n    posted_date_to: $dateto\n  ) {\n    id\n    title {\n      short\n    }\n  }\n}\n",
+		Query: "query contents($projectId: String!, $lang: String = \"ru\", $take: Int = 30, $skip: Int, $dateTo: Int) {\n  contents(\n    project_id: $projectId\n    lang: $lang\n    take: $take\n    skip: $skip\n    posted_date_to: $dateTo\n  ) {\n    id\n    title {\n      short\n    }\n dates {\n      posted\n  }\n }\n}\n",
 		Variables: VarNews{
 			Lang:      "ru",
 			Take:      take,
@@ -47,9 +47,9 @@ func NewsQuery(take int, skip int, dateTo int) string {
 	return string(query)
 }
 
-func ArticleQuery(id string) string {
+func articleQuery(id string) string {
 	q := &ArtQuery{
-		Query: "query content($id: String!) {\n  content(\n    id: $id\n  ) {\n\turl\n \n id \n   title {\n      short\n    }  \n    description {\n        long\n    } \n}\n}",
+		Query: "query content($id: String!) {\n  content(\n    id: $id\n  ) {\n\turl\n \n id \n   title {\n      short\n    }  \n    description {\n        long\n    } \n   dates {\n      posted\n    } \n}\n}",
 		Variables: VarArticle{
 			Id: id,
 		},
