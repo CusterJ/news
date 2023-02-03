@@ -9,14 +9,17 @@
 </head>
 <body>
 	<div class="main">  	
-        <div class="goback"><a href="/news" class="back"><< Back to news</a></div>
+		<div class="goback"><a href="/news" class="back"><< Back to news</a></div>
 		<input type="checkbox" id="chk" aria-hidden="true">
-
-			<div class="login">
-                <form method="POST" action="/login">     
-					<label for="chk" aria-hidden="true">Login</label>
-					<input type="text" name="username" placeholder="User name" required="">
-					<input type="password" name="password" placeholder="Password" required="">
+		
+		<div class="login">
+			<form method="POST" action="/login">     
+				<label for="chk" aria-hidden="true">Login</label>
+				<input type="text" name="username" placeholder="User name" required="">
+				<input type="password" name="password" placeholder="Password" required="">
+				{{ if .error }}
+				<div class="error"><h3>{{.error}}</h3></div>
+				{{ end }}
 					<button>Login</button>
 				</form>
 			</div>

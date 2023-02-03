@@ -141,7 +141,7 @@ func (ar *ArticleRepo) BulkWrite(a []domain.Article) error {
 }
 
 func (ar *ArticleRepo) GetNewsFromDB(limit, skip int64) []domain.Article {
-	fmt.Println("func GetNewsFromDB -> start")
+	// fmt.Println("func GetNewsFromDB -> start")
 
 	if limit == 0 {
 		limit = 15

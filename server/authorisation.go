@@ -127,6 +127,7 @@ func (s *Server) UserSave(username, password, useragent string) (ac http.Cookie,
 func (s *Server) GenerateAuthCookie(username, id, useragent string) (cookie http.Cookie, err error) {
 	fmt.Println("func SetAuthCookie -> start")
 
+	// TODO save sign of user-agent as value of UserAgent
 	ac := AuthCookie{
 		ID:        id,
 		Username:  username,

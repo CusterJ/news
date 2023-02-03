@@ -28,6 +28,12 @@ func (s *Server) GetLogin(w http.ResponseWriter, r *http.Request, _ httprouter.P
 
 	td := templateData{}
 
+	// check err form from last get if it was
+	formError := r.URL.Query().Get("form")
+	if formError == "error" {
+		td["error"] = "Wrong name or password"
+	}
+
 	// check AUTH
 	ac, ok := s.VerifyAuthCookies(r)
 	if ok {
@@ -69,7 +75,7 @@ func (s *Server) PostLogin(w http.ResponseWriter, r *http.Request, _ httprouter.
 	ac, err := s.UserLogin(username, password, r.UserAgent())
 	if err != nil {
 		fmt.Println("func PostLogin handler -> UserLogin error -> Redirect: ", err)
-		http.Redirect(w, r, "/login", http.StatusNoContent)
+		http.Redirect(w, r, "/login?form=error", http.StatusSeeOther)
 		return
 	}
 

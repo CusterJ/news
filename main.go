@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -57,7 +58,10 @@ func main() {
 
 	// GET ARTICLES WITH PARSER
 	parser := newsparser.NewWorker(articles, esArticles)
-	go parser.StartParser()
+	stopChan := make(chan bool)
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	go parser.StartParser(stopChan, wg)
 
 	//ROUTER
 	router := httprouter.New()
@@ -111,7 +115,9 @@ func main() {
 
 	<-gracefulShutdown
 	// ==============================
-	defer time.Sleep(3 * time.Second)
+	stopChan <- true
+	wg.Wait()
+	// defer time.Sleep(3 * time.Second)
 	fmt.Println("Shutdown gracefully")
 }
 

@@ -11,13 +11,11 @@ import (
 
 type UserRepo struct {
 	coll *mongo.Collection
-	User domain.User
 }
 
 func NewUserRepo(coll *mongo.Collection) *UserRepo {
 	return &UserRepo{
 		coll: coll,
-		User: domain.User{},
 	}
 }
 
@@ -34,16 +32,16 @@ func (ur *UserRepo) UserSave(u domain.User) error {
 
 func (ur *UserRepo) UserExistsInDB(username string) (domain.User, bool) {
 	fmt.Println("func UserExistsInDB -> start")
-
+	user := domain.User{}
 	filter := bson.M{"name": username}
-	err := ur.coll.FindOne(context.TODO(), filter).Decode(&ur.User)
+	err := ur.coll.FindOne(context.TODO(), filter).Decode(&user)
 	if err != nil {
 		fmt.Printf("func UserExistsInDB -> Can't find this User %s in DB %v \n", username, err)
-		return ur.User, false
+		return user, false
 	}
 
-	fmt.Printf("func UserExistsInDB -> document %+v exists in DB\n", ur.User)
-	return ur.User, true
+	fmt.Printf("func UserExistsInDB -> document %+v exists in DB\n", user)
+	return user, true
 }
 
 func (ur *UserRepo) UserFind(username, password string) error {
