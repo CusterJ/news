@@ -208,6 +208,9 @@ func (s *Server) Search(w http.ResponseWriter, r *http.Request, ps httprouter.Pa
 		td["username"] = ac.Username
 	}
 
+	// TODO: Pagination
+	// pagination := Pagination()
+
 	err = tmpl.ExecuteTemplate(w, "search", td)
 	if err != nil {
 		http.Error(w, "Something went wrong", http.StatusInternalServerError)

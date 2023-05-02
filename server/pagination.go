@@ -7,15 +7,9 @@ import (
 )
 
 func Pagination(page, total int) (pagelist []string) {
-	var take, allPages, skip int
+	var take, allPages int
 	take, _ = strconv.Atoi(os.Getenv("TAKE"))
 	allPages = int(math.Ceil(float64(total) / float64(take)))
-	if page > 0 {
-		skip = (page - 1) * take
-	}
-	if skip > total {
-		skip = 0
-	}
 
 	if page-3 > 2 {
 		pagelist = append(pagelist, strconv.Itoa(1))

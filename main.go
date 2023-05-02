@@ -54,8 +54,6 @@ func main() {
 	// NEW SERVER
 	server := server.NewServer(articles, users, esArticles)
 
-	// articles.DeleteAllArticles()
-
 	// GET ARTICLES WITH PARSER
 	parser := newsparser.NewWorker(articles, esArticles)
 	stopChan := make(chan bool)
