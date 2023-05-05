@@ -3,8 +3,10 @@ package main
 import (
 	"News/db/es"
 	"News/db/mdb"
+	"News/graph"
 	newsparser "News/pkg/news_parser"
 	"News/server"
+	"News/usecases"
 	"context"
 	"fmt"
 	"log"
@@ -15,6 +17,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/joho/godotenv"
 	"github.com/julienschmidt/httprouter"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -22,11 +26,17 @@ import (
 )
 
 const PerPage int = 15
+const defaultGqlPort = "8080"
 
 func main() {
 	// LOAD ENV
 	godotenv.Load(".env")
 	MONGO_URL := os.Getenv("MONGO_URL")
+
+	gqlPort := os.Getenv("GQL_PORT")
+	if gqlPort == "" {
+		gqlPort = defaultGqlPort
+	}
 
 	// MONGO CONNECTION
 	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1)
@@ -36,8 +46,9 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	client, err := mongo.Connect(ctx, clientOptions)
-	Check(err)
-
+	if err != nil {
+		log.Println("Mongo Connect error", err)
+	}
 	// MONGO COLLECTIONS
 	database := client.Database("point")
 
@@ -49,13 +60,16 @@ func main() {
 
 	// ELASTIC
 	ES_ARTS := os.Getenv("ES_ARTS")
-	esArticles := es.NewElasticRepo(ES_ARTS)
+	searchRepo := es.NewElasticRepo(ES_ARTS)
 
 	// NEW SERVER
-	server := server.NewServer(articles, users, esArticles)
+	server := server.NewServer(articles, users, searchRepo)
+	usecases := usecases.NewUseCases(articles, searchRepo)
+	resolver := graph.NewGqlResolver(server, usecases)
+	// gqlSrv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{}}))
 
 	// GET ARTICLES WITH PARSER
-	parser := newsparser.NewWorker(articles, esArticles)
+	parser := newsparser.NewWorker(articles, searchRepo)
 	stopChan := make(chan bool)
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
@@ -65,7 +79,6 @@ func main() {
 	router := httprouter.New()
 	// static files
 	router.ServeFiles("/static/*filepath", http.Dir("./static/"))
-	// http.HandleFunc("/", Index)
 
 	// dinamic router & API
 	router.GET("/hello/:name", server.Hello)
@@ -81,9 +94,12 @@ func main() {
 	router.POST("/login", server.PostLogin)
 	router.POST("/register", server.Register)
 
+	// GraphQL
+	router.GET("/", playgroundHandler())
+	router.POST("/query", GraphqlHandler(resolver))
+
 	// start server
-	fmt.Println("Setrver start at port 8088")
-	// log.Fatal(http.ListenAndServe(":8088", router))
+	fmt.Println("Setrver starting at port 8088")
 
 	// ==============================
 	// gracefull shutdown http server
@@ -119,8 +135,24 @@ func main() {
 	fmt.Println("Shutdown gracefully")
 }
 
-func Check(err error) {
-	if err != nil {
-		fmt.Println(err)
+func playgroundHandler() httprouter.Handle {
+
+	ph := playground.Handler("My GraphQL playground", "/query")
+
+	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		ph(w, r)
+	}
+}
+
+func GraphqlHandler(resolver *graph.Resolver) httprouter.Handle {
+
+	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{
+		Resolvers:  resolver,
+		Directives: graph.DirectiveRoot{},
+		Complexity: graph.ComplexityRoot{},
+	}))
+
+	return func(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+		srv.ServeHTTP(w, req)
 	}
 }

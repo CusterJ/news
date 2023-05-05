@@ -2,6 +2,7 @@ package server
 
 import (
 	"News/domain"
+	"context"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -146,9 +147,7 @@ func (s *Server) Hello(w http.ResponseWriter, r *http.Request, ps httprouter.Par
 
 func (s *Server) Hi(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	name := r.URL.Query().Get("name")
-	fmt.Println("name is =>", name)
 	fmt.Fprintf(w, "hello, %s!\n", name)
-
 }
 
 func (s *Server) GetNews(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -156,7 +155,11 @@ func (s *Server) GetNews(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 	w.Header().Set("Content-Type", "application/json")
 	resp := &domain.ArticlesResponse{}
 	resp.Message = "OK"
-	resp.Data = s.ar.GetNewsFromDB(15, 0)
+	articleList, err := s.ar.GetNewsFromDB(context.TODO(), 15, 0)
+	if err != nil {
+		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
+	}
+	resp.Data = articleList
 
 	jsonResp, err := json.Marshal(resp)
 	if err != nil {
@@ -198,7 +201,7 @@ func (s *Server) Search(w http.ResponseWriter, r *http.Request, ps httprouter.Pa
 
 	td := templateData{"title": "Searching for: " + query}
 
-	td["data"], err = s.es.EsSearchArticle(query)
+	td["data"], err = s.es.Search(query)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -242,7 +245,7 @@ func (s *Server) EditArticle(w http.ResponseWriter, r *http.Request, ps httprout
 	if err != nil {
 		fmt.Println("func EditArticle => UpdateOne article error: ", err)
 	}
-	err = s.es.EsUpdateOne(art)
+	err = s.es.UpdateOne(art)
 	if err != nil {
 		fmt.Println("EditArticle handler error -> EsUpdateOne error")
 	}

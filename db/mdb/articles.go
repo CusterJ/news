@@ -4,7 +4,6 @@ import (
 	"News/domain"
 	"context"
 	"fmt"
-	"log"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -20,6 +19,19 @@ func NewArticleRepo(coll *mongo.Collection) *ArticleRepo {
 	return &ArticleRepo{coll: coll}
 }
 
+func (ar *ArticleRepo) GetByID(ctx context.Context, id string) (domain.Article, error) {
+	result := domain.Article{}
+	filter := bson.M{"id": id}
+	err := ar.coll.FindOne(ctx, filter).Decode(&result)
+	if err != nil {
+		fmt.Printf("Can't find this Article %s in DB %v \n", id, err)
+		return result, err
+	}
+	fmt.Printf("func GetArticleById document %s exists in DB\n", result.Title.Short)
+	return result, nil
+}
+
+// TODO: Extract count documents from this func
 func (ar *ArticleRepo) ArticleList(ctx context.Context, in *domain.ArticlesRequest) (*domain.ArticlesResponse, error) {
 	opts := options.Find().SetSort(bson.D{{Key: "dates.posted", Value: -1}}).SetSkip(int64(in.Skip)).SetLimit(int64(in.Limit))
 
@@ -42,50 +54,6 @@ func (ar *ArticleRepo) ArticleList(ctx context.Context, in *domain.ArticlesReque
 	}
 
 	return &res, err
-}
-
-func (ar *ArticleRepo) InsertArticles(articles []interface{}) error {
-	result, err := ar.coll.InsertMany(context.TODO(), articles)
-	if err != nil {
-		return err
-	}
-	fmt.Println("Inserted documents: ", len(result.InsertedIDs), result)
-	return nil
-}
-
-func (ar *ArticleRepo) InsertOne(a domain.Article) error {
-	result, err := ar.coll.InsertOne(context.TODO(), a)
-	if err != nil {
-		return err
-	}
-	fmt.Println("Inserted document: ", result, a.Title.Short)
-	return nil
-}
-
-func (ar *ArticleRepo) FindAndInsert(a domain.Article) bool {
-	fmt.Println("func FindAndInsert ", a.Id)
-	_, ok := ar.GetArticleById(a.Id)
-	if !ok {
-		fmt.Println("Writing new document")
-		ar.InsertOne(a)
-		return false
-	}
-	fmt.Println("Document already exists")
-	return true
-}
-
-func (ar *ArticleRepo) FindAndInsertMany(a []domain.Article) bool {
-	inserted := 0
-	fmt.Printf("func FindAndInsertMany from %v documents \n", len(a))
-	for i := 0; i < len(a); i++ {
-		_, ok := ar.GetArticleById(a[i].Id)
-		if !ok {
-			ar.InsertOne(a[i])
-			inserted++
-		}
-	}
-	fmt.Println("Inserted: ", inserted)
-	return inserted <= 0
 }
 
 func (ar *ArticleRepo) GetArticleById(id string) (result domain.Article, ok bool) {
@@ -140,23 +108,21 @@ func (ar *ArticleRepo) BulkWrite(a []domain.Article) error {
 	return nil
 }
 
-func (ar *ArticleRepo) GetNewsFromDB(limit, skip int64) []domain.Article {
-	// fmt.Println("func GetNewsFromDB -> start")
-
-	if limit == 0 {
+func (ar *ArticleRepo) GetNewsFromDB(ctx context.Context, limit, skip int) ([]domain.Article, error) {
+	if limit <= 0 {
 		limit = 15
 	}
 	// sort := date desc
-	opts := options.Find().SetSort(bson.D{{Key: "dates.posted", Value: -1}}).SetLimit(limit).SetSkip(skip)
-	cursor, err := ar.coll.Find(context.TODO(), bson.D{}, opts)
+	opts := options.Find().SetSort(bson.D{{Key: "dates.posted", Value: -1}}).SetLimit(int64(limit)).SetSkip(int64(skip))
+	cursor, err := ar.coll.Find(ctx, bson.D{}, opts)
 	if err != nil {
 		fmt.Println("func GetNewsFromDB error: ", err)
-		return nil
+		return nil, err
 	}
 	var results []domain.Article
 	if err = cursor.All(context.TODO(), &results); err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	return results
+	return results, nil
 }

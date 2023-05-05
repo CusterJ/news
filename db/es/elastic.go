@@ -169,11 +169,7 @@ func (e *ElasticRepo) EsInsertBulk(arts []domain.Article) error {
 	return nil
 }
 
-func EsInsertOne(art domain.Article) error {
-	return nil
-}
-
-func (e *ElasticRepo) EsUpdateOne(art domain.Article) error {
+func (e *ElasticRepo) UpdateOne(art domain.Article) error {
 	ES_ARTS := os.Getenv("ES_ARTS")
 	url := ES_ARTS + "_doc/" + art.Id
 
@@ -207,8 +203,7 @@ func EsDeleteOne(id string) error {
 }
 
 // SEARCH
-
-func (e *ElasticRepo) EsSearchArticle(s string) (arts []domain.Article, err error) {
+func (e *ElasticRepo) Search(s string) (arts []domain.Article, err error) {
 	fmt.Println("func EsSearchArticle start")
 	ES_ARTS := os.Getenv("ES_ARTS")
 

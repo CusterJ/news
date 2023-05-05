@@ -4,6 +4,7 @@ import (
 	"News/db/es"
 	"News/db/mdb"
 	"News/domain"
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -111,7 +112,10 @@ func (w *Worker) takeArticleRepoDate() (int64, error) {
 	// get article from MONGO
 	var mongoDate int64
 
-	mgoArticle := w.mgo.GetNewsFromDB(5, 0)
+	mgoArticle, err := w.mgo.GetNewsFromDB(context.TODO(), 5, 0)
+	if err != nil {
+		return 0, err
+	}
 
 	if len(mgoArticle) > 0 {
 		mongoDate = mgoArticle[0].Dates.Posted
