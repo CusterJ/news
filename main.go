@@ -65,7 +65,7 @@ func main() {
 	// NEW SERVER
 	server := server.NewServer(articles, users, searchRepo)
 	usecases := usecases.NewUseCases(articles, searchRepo)
-	resolver := graph.NewGqlResolver(server, usecases)
+	resolver := graph.NewGqlResolver(usecases)
 	// gqlSrv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{}}))
 
 	// GET ARTICLES WITH PARSER
