@@ -5,6 +5,7 @@
 <body>
     {{template "headerHTML" .username}}
     <h1>{{.title}}</h1>
+    <h2>Results: {{.hits}}</h2>
     <ul>
     {{if .data}}
     {{range .data}}
@@ -14,7 +15,21 @@
       <h2>No results found</h2>
     {{end}}
     </ul>
+    {{template "paginationHTML" .pagination}}
     {{template "footerHTML"}}
+    <script>
+      function addQueryParameterToLinks(name) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const queryValue = urlParams.get(name);
+        const pageLinks = document.querySelectorAll('.page a');
+        if (queryValue) {
+          pageLinks.forEach((link) => {
+            link.href = `${link.href}&${name}=${queryValue}`;
+          });
+        }
+      }
+      addQueryParameterToLinks('query');
+      </script>
 </body>
 </html>
 {{end}}

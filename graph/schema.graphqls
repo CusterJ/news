@@ -4,9 +4,9 @@
 
 
 type Query {
-  articles(take: Int = 15, skip: Int = 0): [Article!]!
+  articles(page: Int = 0): [Article!]!
   article(id: ID!): Article!
-  search(q: String!): [Article!]!
+  search(q: String!, page: Int = 0): [Article!]!
 }
 
 type Mutation {

@@ -8,7 +8,6 @@ import (
 	"html/template"
 	"log"
 	"net/http"
-	"os"
 	"strconv"
 	"time"
 
@@ -152,27 +151,18 @@ func (s *Server) Hi(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 
 // REST API method
 func (s *Server) GetNews(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	take := r.URL.Query().Get("take")
-	skip := r.URL.Query().Get("skip")
-	tk, sk := 15, 0
-	if take != "" {
-		take, err := strconv.Atoi(take)
+	page := r.URL.Query().Get("page")
+	pg := 0
+	if page != "" {
+		page, err := strconv.Atoi(page)
 		if err != nil {
-			fmt.Fprint(w, "Bad take parameter")
+			fmt.Fprint(w, "Bad page parameter", http.StatusBadRequest)
 			return
 		}
-		tk = take
-	}
-	if skip != "" {
-		skip, err := strconv.Atoi(skip)
-		if err != nil {
-			fmt.Fprint(w, "Bad skip parameter")
-			return
-		}
-		sk = skip
+		pg = page
 	}
 
-	articleList, err := s.usecases.GetArticlesList(context.TODO(), tk, sk)
+	articleList, err := s.usecases.GetArticlesList(context.TODO(), pg)
 	if err != nil {
 		fmt.Fprintf(w, "Error while getting articless. Err: %s", err)
 	}
@@ -221,29 +211,47 @@ func (s *Server) GetOneArticle(w http.ResponseWriter, r *http.Request, ps httpro
 }
 
 func (s *Server) Search(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	tmpl, err := template.ParseFiles("static/pages/search.html", "static/partials/header.html", "static/partials/footer.html", "static/partials/head.html")
+	tmpl, err := template.ParseFiles(
+		"static/pages/search.html",
+		"static/partials/header.html",
+		"static/partials/footer.html",
+		"static/partials/head.html",
+		"static/partials/pagination.html",
+	)
 	if err != nil {
-		http.Error(w, "Something went wrong", http.StatusInternalServerError)
+		http.Error(w, "Template error", http.StatusInternalServerError)
 		return
 	}
 
 	query := r.URL.Query().Get("query")
-	fmt.Printf("func handler Search for query %s\n", query)
 
-	td := templateData{"title": "Searching for: " + query}
+	page := 1
+	pg := r.URL.Query().Get("page")
+	if pg != "" {
+		page, err = strconv.Atoi(pg)
+		if err != nil {
+			http.Error(w, "Bad page parameter", http.StatusInternalServerError)
+			return
+		}
+	} else {
+		pg = "1"
+	}
 
-	td["data"], err = s.usecases.Search(r.Context(), query)
+	arts, hits, err := s.usecases.Search(r.Context(), query, page)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	td := templateData{"title": "Searching for: " + query}
+	td["data"] = arts
+	td["hits"] = hits
 
 	ac, ok := s.usecases.ReadAuthCookies(r)
 	if ok {
 		td["username"] = ac.Username
 	}
 
-	// TODO: Pagination
-	// pagination := Pagination()
+	td["pagination"] = map[string]interface{}{"current": pg, "pages": Pagination(page, hits)}
 
 	err = tmpl.ExecuteTemplate(w, "search", td)
 	if err != nil {
@@ -323,8 +331,13 @@ func (s *Server) GetOneArticlePage(w http.ResponseWriter, r *http.Request, ps ht
 func (s *Server) GetNewsPage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	fmt.Println("func handler GetNewsPage ")
 
-	tmpl, err := template.ParseFiles("static/pages/news.html", "static/partials/header.html", "static/partials/footer.html",
-		"static/partials/head.html", "static/partials/pagination.html")
+	tmpl, err := template.ParseFiles(
+		"static/pages/news.html",
+		"static/partials/header.html",
+		"static/partials/footer.html",
+		"static/partials/head.html",
+		"static/partials/pagination.html",
+	)
 	if err != nil {
 		http.Error(w, "Something with template went wrong", http.StatusInternalServerError)
 		return
@@ -337,40 +350,33 @@ func (s *Server) GetNewsPage(w http.ResponseWriter, r *http.Request, ps httprout
 		td["username"] = ac.Username
 	}
 
-	// work with page query and skip for db req
-	currentPage := 0
-
-	cpage := r.URL.Query().Get("page")
-	if cpage != "" {
-		currentPage, _ = strconv.Atoi(cpage)
-	}
-	take, err := strconv.Atoi(os.Getenv("TAKE"))
-	if err != nil {
-		take = 15 // set default
-	}
-
-	skip := 0
-	if currentPage > 1 {
-		skip = (currentPage - 1) * take
+	page := 1
+	pg := r.URL.Query().Get("page")
+	if pg != "" {
+		page, err = strconv.Atoi(pg)
+		if err != nil {
+			fmt.Fprint(w, "Bad page parameter", http.StatusBadRequest)
+			return
+		}
+	} else {
+		pg = "1"
 	}
 
-	fmt.Printf("GetNewsPage -> take: %v, page: %v, skip: %v \n", take, currentPage, skip)
-
-	arts, err := s.usecases.GetArticlesList(r.Context(), take, skip)
+	arts, err := s.usecases.GetArticlesList(r.Context(), page)
 	if err != nil {
 		http.Error(w, "Something went wrong", http.StatusInternalServerError)
 		return
 	}
 	td["data"] = arts
 
-	docs, err := s.usecases.Count(r.Context())
+	total, err := s.usecases.Count(r.Context())
 	if err != nil {
 		http.Error(w, "Something went wrong", http.StatusInternalServerError)
-		fmt.Printf("func GetNewsPage -> Count DB total articles error: %v", err)
 	}
-	pages := Pagination(currentPage, int(docs))
-	pg := map[string]interface{}{"current": cpage, "pages": pages}
-	td["pagination"] = pg
+
+	pages := Pagination(page, int(total))
+	pagination := map[string]interface{}{"current": pg, "pages": pages}
+	td["pagination"] = pagination
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 

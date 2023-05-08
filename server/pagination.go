@@ -8,7 +8,10 @@ import (
 
 func Pagination(page, total int) (pagelist []string) {
 	var take, allPages int
-	take, _ = strconv.Atoi(os.Getenv("TAKE"))
+	take, err := strconv.Atoi(os.Getenv("TAKE"))
+	if err != nil {
+		take = 15 // set default
+	}
 	allPages = int(math.Ceil(float64(total) / float64(take)))
 
 	if page-3 > 2 {

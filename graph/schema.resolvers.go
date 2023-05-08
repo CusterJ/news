@@ -34,8 +34,8 @@ func (r *mutationResolver) EditArticle(ctx context.Context, input model.ArticleI
 }
 
 // Articles is the resolver for the articles field.
-func (r *queryResolver) Articles(ctx context.Context, take *int, skip *int) ([]*model.Article, error) {
-	arts, err := r.usecases.GetArticlesList(ctx, *take, *skip)
+func (r *queryResolver) Articles(ctx context.Context, page *int) ([]*model.Article, error) {
+	arts, err := r.usecases.GetArticlesList(ctx, *page)
 	if err != nil {
 		return nil, err
 	}
@@ -73,13 +73,11 @@ func (r *queryResolver) Article(ctx context.Context, id string) (*model.Article,
 }
 
 // Search is the resolver for the search field.
-func (r *queryResolver) Search(ctx context.Context, q string) ([]*model.Article, error) {
-	arts, err := r.usecases.Search(ctx, q)
+func (r *queryResolver) Search(ctx context.Context, q string, page *int) ([]*model.Article, error) {
+	arts, _, err := r.usecases.Search(ctx, q, *page)
 	if err != nil {
 		return nil, err
 	}
-
-	print(len(arts))
 
 	articles := []*model.Article{}
 

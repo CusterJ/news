@@ -59,8 +59,8 @@ type ComplexityRoot struct {
 
 	Query struct {
 		Article  func(childComplexity int, id string) int
-		Articles func(childComplexity int, take *int, skip *int) int
-		Search   func(childComplexity int, q string) int
+		Articles func(childComplexity int, page *int) int
+		Search   func(childComplexity int, q string, page *int) int
 	}
 }
 
@@ -68,9 +68,9 @@ type MutationResolver interface {
 	EditArticle(ctx context.Context, input model.ArticleInput) (*model.Article, error)
 }
 type QueryResolver interface {
-	Articles(ctx context.Context, take *int, skip *int) ([]*model.Article, error)
+	Articles(ctx context.Context, page *int) ([]*model.Article, error)
 	Article(ctx context.Context, id string) (*model.Article, error)
-	Search(ctx context.Context, q string) ([]*model.Article, error)
+	Search(ctx context.Context, q string, page *int) ([]*model.Article, error)
 }
 
 type executableSchema struct {
@@ -157,7 +157,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Articles(childComplexity, args["take"].(*int), args["skip"].(*int)), true
+		return e.complexity.Query.Articles(childComplexity, args["page"].(*int)), true
 
 	case "Query.search":
 		if e.complexity.Query.Search == nil {
@@ -169,7 +169,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Search(childComplexity, args["q"].(string)), true
+		return e.complexity.Query.Search(childComplexity, args["q"].(string), args["page"].(*int)), true
 
 	}
 	return 0, false
@@ -308,23 +308,14 @@ func (ec *executionContext) field_Query_articles_args(ctx context.Context, rawAr
 	var err error
 	args := map[string]interface{}{}
 	var arg0 *int
-	if tmp, ok := rawArgs["take"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("take"))
+	if tmp, ok := rawArgs["page"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("page"))
 		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["take"] = arg0
-	var arg1 *int
-	if tmp, ok := rawArgs["skip"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("skip"))
-		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["skip"] = arg1
+	args["page"] = arg0
 	return args, nil
 }
 
@@ -340,6 +331,15 @@ func (ec *executionContext) field_Query_search_args(ctx context.Context, rawArgs
 		}
 	}
 	args["q"] = arg0
+	var arg1 *int
+	if tmp, ok := rawArgs["page"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("page"))
+		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["page"] = arg1
 	return args, nil
 }
 
@@ -682,7 +682,7 @@ func (ec *executionContext) _Query_articles(ctx context.Context, field graphql.C
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Articles(rctx, fc.Args["take"].(*int), fc.Args["skip"].(*int))
+		return ec.resolvers.Query().Articles(rctx, fc.Args["page"].(*int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -816,7 +816,7 @@ func (ec *executionContext) _Query_search(ctx context.Context, field graphql.Col
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Search(rctx, fc.Args["q"].(string))
+		return ec.resolvers.Query().Search(rctx, fc.Args["q"].(string), fc.Args["page"].(*int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)

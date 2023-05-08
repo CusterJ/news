@@ -33,12 +33,12 @@ type articleRepository interface {
 }
 
 type searchRepository interface {
-	Search(string) ([]domain.Article, error)
+	Search(string, int, int) ([]domain.Article, int, error)
 	UpdateOne(domain.Article) error
 }
 
 type userRepository interface {
 	UserSave(domain.User) error
-	UserExistsInDB(username string) (domain.User, bool)
-	UserFind(username, password string) error
+	UserExistsInDB(string) (domain.User, bool)
+	UserFind(string, string) error
 }
