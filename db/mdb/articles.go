@@ -31,7 +31,16 @@ func (ar *ArticleRepo) GetByID(ctx context.Context, id string) (domain.Article, 
 	return result, nil
 }
 
-// TODO: Extract count documents from this func
+func (ar *ArticleRepo) Count(ctx context.Context) (int64, error) {
+	docs, err := ar.coll.CountDocuments(ctx, bson.M{})
+	if err != nil {
+		fmt.Println("func ArticleList CountDocuments error: ", err)
+		return 0, err
+	}
+
+	return docs, nil
+}
+
 func (ar *ArticleRepo) ArticleList(ctx context.Context, in *domain.ArticlesRequest) (*domain.ArticlesResponse, error) {
 	opts := options.Find().SetSort(bson.D{{Key: "dates.posted", Value: -1}}).SetSkip(int64(in.Skip)).SetLimit(int64(in.Limit))
 

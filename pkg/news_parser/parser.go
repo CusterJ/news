@@ -44,20 +44,16 @@ func (w *Worker) StartParser(ch chan bool, wg *sync.WaitGroup) {
 			firstNewsListDate, err = takeNewsListDate()
 			if err != nil {
 				fmt.Println("Parser -> can't take last news list date from site. Sleep and try later")
+				fmt.Println("Parser -> error: ", err)
 				time.Sleep(10 * time.Second)
 				continue
 			}
 
-			// fmt.Printf("Parser start -> dates: \n repo = %v == %v \n news = %v == %v \n",
-			// 	articleRepoDate, time.Unix(articleRepoDate, 0), firstNewsListDate, time.Unix(firstNewsListDate, 0))
-
-			// compareDates(articleRepoDate ,firstNewsListDate)
 			if articleRepoDate < firstNewsListDate {
 				savedToDbs := 0
 				for lastNewsListDate := firstNewsListDate + 10; articleRepoDate < lastNewsListDate; {
 					news := getArticles(getNewsList(newsQuery(30, 0, lastNewsListDate)))
 					fmt.Printf("Parser -> news, len = %v\n", len(news))
-					// fmt.Printf("Parser -> news[0] %+v\n", news[0])
 
 					err := w.saveArticlesToDBs(news)
 					if err != nil {

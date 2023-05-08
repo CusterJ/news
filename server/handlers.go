@@ -36,7 +36,7 @@ func (s *Server) GetLogin(w http.ResponseWriter, r *http.Request, _ httprouter.P
 	}
 
 	// check AUTH
-	ac, ok := s.VerifyAuthCookies(r)
+	ac, ok := s.usecases.VerifyAuthCookies(r)
 	if ok {
 		td["auth"] = ac.Username
 	}
@@ -73,7 +73,7 @@ func (s *Server) PostLogin(w http.ResponseWriter, r *http.Request, _ httprouter.
 		http.Redirect(w, r, "/login", http.StatusBadRequest)
 	}
 
-	ac, err := s.UserLogin(username, password, r.UserAgent())
+	ac, err := s.usecases.UserLogin(username, password, r.UserAgent())
 	if err != nil {
 		fmt.Println("func PostLogin handler -> UserLogin error -> Redirect: ", err)
 		http.Redirect(w, r, "/login?form=error", http.StatusSeeOther)
@@ -105,7 +105,7 @@ func (s *Server) Register(w http.ResponseWriter, r *http.Request, _ httprouter.P
 		return
 	}
 
-	ac, err := s.UserSave(username, password, r.UserAgent())
+	ac, err := s.usecases.UserSave(username, password, r.UserAgent())
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "Create new User error.\n Name: %s\n Age: %s", username, password)
@@ -150,15 +150,38 @@ func (s *Server) Hi(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 	fmt.Fprintf(w, "hello, %s!\n", name)
 }
 
+// REST API method
 func (s *Server) GetNews(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	take := r.URL.Query().Get("take")
+	skip := r.URL.Query().Get("skip")
+	tk, sk := 15, 0
+	if take != "" {
+		take, err := strconv.Atoi(take)
+		if err != nil {
+			fmt.Fprint(w, "Bad take parameter")
+			return
+		}
+		tk = take
+	}
+	if skip != "" {
+		skip, err := strconv.Atoi(skip)
+		if err != nil {
+			fmt.Fprint(w, "Bad skip parameter")
+			return
+		}
+		sk = skip
+	}
+
+	articleList, err := s.usecases.GetArticlesList(context.TODO(), tk, sk)
+	if err != nil {
+		fmt.Fprintf(w, "Error while getting articless. Err: %s", err)
+	}
+
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
+
 	resp := &domain.ArticlesResponse{}
 	resp.Message = "OK"
-	articleList, err := s.ar.GetNewsFromDB(context.TODO(), 15, 0)
-	if err != nil {
-		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
-	}
 	resp.Data = articleList
 
 	jsonResp, err := json.Marshal(resp)
@@ -169,19 +192,27 @@ func (s *Server) GetNews(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 	w.Write(jsonResp)
 }
 
+// REST API method
 func (s *Server) GetOneArticle(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	id := ps.ByName("id")
 	fmt.Println(id)
-	res, ok := s.ar.GetArticleById(id)
-	if !ok {
+	res, err := s.usecases.GetByID(r.Context(), id)
+	// TODO: remove prints
+	fmt.Println(r.Context())
+	if err != nil {
+		fmt.Println("No id in db. Error: ", err)
+		fmt.Fprint(w, err)
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
+
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
+
 	resp := &domain.ArticleResponse{}
 	resp.Message = "OK"
 	resp.Data = res
+
 	jsonResp, err := json.Marshal(resp)
 	if err != nil {
 		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
@@ -201,12 +232,12 @@ func (s *Server) Search(w http.ResponseWriter, r *http.Request, ps httprouter.Pa
 
 	td := templateData{"title": "Searching for: " + query}
 
-	td["data"], err = s.es.Search(query)
+	td["data"], err = s.usecases.Search(r.Context(), query)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	ac, ok := s.ReadAuthCookies(r)
+	ac, ok := s.usecases.ReadAuthCookies(r)
 	if ok {
 		td["username"] = ac.Username
 	}
@@ -222,7 +253,6 @@ func (s *Server) Search(w http.ResponseWriter, r *http.Request, ps httprouter.Pa
 }
 
 func (s *Server) EditArticle(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	fmt.Println("func EditArticle start")
 	if err := r.ParseForm(); err != nil {
 		fmt.Fprintf(w, "ParseForm() err: %v", err)
 		return
@@ -235,20 +265,22 @@ func (s *Server) EditArticle(w http.ResponseWriter, r *http.Request, ps httprout
 		fmt.Fprintf(w, "No title or description.\n Title: %s\n Description: %s", title, description)
 		return
 	}
-	art, ok := s.ar.GetArticleById(id)
-	if !ok {
+
+	// Check if article with this ID exists in DB
+	art, err := s.usecases.GetByID(r.Context(), id)
+	if err != nil {
 		w.WriteHeader(http.StatusNoContent)
 	}
-	art.Description.Long = description
+	// Replase Title and Description
 	art.Title.Short = title
-	err := s.ar.UpdateOne(art)
+	art.Description.Long = description
+
+	// Update article
+	err = s.usecases.EditArticle(art)
 	if err != nil {
 		fmt.Println("func EditArticle => UpdateOne article error: ", err)
 	}
-	err = s.es.UpdateOne(art)
-	if err != nil {
-		fmt.Println("EditArticle handler error -> EsUpdateOne error")
-	}
+
 	http.Redirect(w, r, "/article/"+id, http.StatusSeeOther)
 }
 
@@ -261,7 +293,7 @@ func (s *Server) GetOneArticlePage(w http.ResponseWriter, r *http.Request, ps ht
 		return
 	}
 
-	ac, ok := s.ReadAuthCookies(r)
+	ac, ok := s.usecases.ReadAuthCookies(r)
 
 	if ok {
 		td["username"] = ac.Username
@@ -270,11 +302,10 @@ func (s *Server) GetOneArticlePage(w http.ResponseWriter, r *http.Request, ps ht
 	if ok && edit == "true" {
 		td["edit"] = true
 	}
-	id := ps.ByName("id")
-	fmt.Println("func handler GetOneArticlePage with id: ", id)
 
-	res, ok := s.ar.GetArticleById(id)
-	if !ok {
+	id := ps.ByName("id")
+	res, err := s.usecases.GetByID(r.Context(), id)
+	if err != nil {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
@@ -301,7 +332,7 @@ func (s *Server) GetNewsPage(w http.ResponseWriter, r *http.Request, ps httprout
 
 	td := templateData{"title": "News, Analysis, Politics, Business, Technology"}
 
-	ac, ok := s.ReadAuthCookies(r)
+	ac, ok := s.usecases.ReadAuthCookies(r)
 	if ok {
 		td["username"] = ac.Username
 	}
@@ -325,18 +356,19 @@ func (s *Server) GetNewsPage(w http.ResponseWriter, r *http.Request, ps httprout
 
 	fmt.Printf("GetNewsPage -> take: %v, page: %v, skip: %v \n", take, currentPage, skip)
 
-	rd, err := s.ar.ArticleList(r.Context(), &domain.ArticlesRequest{
-		Skip:  skip,
-		Limit: take,
-	})
+	arts, err := s.usecases.GetArticlesList(r.Context(), take, skip)
 	if err != nil {
 		http.Error(w, "Something went wrong", http.StatusInternalServerError)
 		return
 	}
+	td["data"] = arts
 
-	td["data"] = rd.Data
-
-	pages := Pagination(currentPage, int(rd.Count))
+	docs, err := s.usecases.Count(r.Context())
+	if err != nil {
+		http.Error(w, "Something went wrong", http.StatusInternalServerError)
+		fmt.Printf("func GetNewsPage -> Count DB total articles error: %v", err)
+	}
+	pages := Pagination(currentPage, int(docs))
 	pg := map[string]interface{}{"current": cpage, "pages": pages}
 	td["pagination"] = pg
 

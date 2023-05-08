@@ -53,23 +53,22 @@ func main() {
 	database := client.Database("point")
 
 	articlesColl := database.Collection("articles")
-	articles := mdb.NewArticleRepo(articlesColl)
+	articlesRepo := mdb.NewArticleRepo(articlesColl)
 
 	usersColl := database.Collection("users")
-	users := mdb.NewUserRepo(usersColl)
+	usersRepo := mdb.NewUserRepo(usersColl)
 
 	// ELASTIC
 	ES_ARTS := os.Getenv("ES_ARTS")
 	searchRepo := es.NewElasticRepo(ES_ARTS)
 
 	// NEW SERVER
-	server := server.NewServer(articles, users, searchRepo)
-	usecases := usecases.NewUseCases(articles, searchRepo)
+	usecases := usecases.NewUseCases(articlesRepo, usersRepo, searchRepo)
 	resolver := graph.NewGqlResolver(usecases)
-	// gqlSrv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{}}))
+	server := server.NewServer(usersRepo, usecases)
 
 	// GET ARTICLES WITH PARSER
-	parser := newsparser.NewWorker(articles, searchRepo)
+	parser := newsparser.NewWorker(articlesRepo, searchRepo)
 	stopChan := make(chan bool)
 	wg := &sync.WaitGroup{}
 	wg.Add(1)

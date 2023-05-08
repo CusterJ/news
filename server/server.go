@@ -1,21 +1,18 @@
 package server
 
 import (
-	"News/db/es"
 	"News/db/mdb"
+	"News/usecases"
 )
 
 type Server struct {
-	ar *mdb.ArticleRepo
-	ur *mdb.UserRepo
-	es *es.ElasticRepo
+	ur       *mdb.UserRepo
+	usecases *usecases.UseCases
 }
 
-func NewServer(ar *mdb.ArticleRepo, ur *mdb.UserRepo, es *es.ElasticRepo) *Server {
-	// return &Server{ar: ar, es: es}
+func NewServer(ur *mdb.UserRepo, uc *usecases.UseCases) *Server {
 	return &Server{
-		ar: ar,
-		ur: ur,
-		es: es,
+		ur:       ur,
+		usecases: uc,
 	}
 }

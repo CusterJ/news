@@ -5,33 +5,6 @@ import (
 	"context"
 )
 
-type UseCases struct {
-	articleRepo articleRepository
-	searchRepo  searchRepository
-}
-
-func NewUseCases(ar articleRepository, sr searchRepository) *UseCases {
-	return &UseCases{
-		articleRepo: ar,
-		searchRepo:  sr,
-	}
-}
-
-// type articleUsecase interface {
-// 	GetByID(ctx context.Context, id string) (domain.Article, error)
-// }
-
-type articleRepository interface {
-	GetByID(ctx context.Context, id string) (domain.Article, error)
-	GetNewsFromDB(ctx context.Context, take int, skip int) ([]domain.Article, error)
-	UpdateOne(domain.Article) error
-}
-
-type searchRepository interface {
-	Search(query string) ([]domain.Article, error)
-	UpdateOne(domain.Article) error
-}
-
 func (uc *UseCases) GetByID(ctx context.Context, id string) (domain.Article, error) {
 	return uc.articleRepo.GetByID(ctx, id)
 }
@@ -41,7 +14,7 @@ func (uc *UseCases) GetArticlesList(ctx context.Context, take, skip int) ([]doma
 }
 
 func (uc *UseCases) EditArticle(art domain.Article) error {
-	if err := uc.searchRepo.UpdateOne(art); err != nil {
+	if err := uc.articleRepo.UpdateOne(art); err != nil {
 		return err
 	}
 	if err := uc.searchRepo.UpdateOne(art); err != nil {
@@ -52,4 +25,13 @@ func (uc *UseCases) EditArticle(art domain.Article) error {
 
 func (uc *UseCases) Search(ctx context.Context, query string) ([]domain.Article, error) {
 	return uc.searchRepo.Search(query)
+}
+
+func (uc *UseCases) Count(ctx context.Context) (int64, error) {
+	docs, err := uc.articleRepo.Count(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	return docs, nil
 }
