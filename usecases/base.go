@@ -3,12 +3,15 @@ package usecases
 import (
 	"News/domain"
 	"context"
+
+	"github.com/go-playground/validator/v10"
 )
 
 type UseCases struct {
 	articleRepo articleRepository
 	searchRepo  searchRepository
 	userRepo    userRepository
+	validate    *validator.Validate
 }
 
 func NewUseCases(ar articleRepository, ur userRepository, sr searchRepository) *UseCases {
@@ -16,6 +19,7 @@ func NewUseCases(ar articleRepository, ur userRepository, sr searchRepository) *
 		articleRepo: ar,
 		searchRepo:  sr,
 		userRepo:    ur,
+		validate:    validator.New(),
 	}
 }
 

@@ -26,6 +26,11 @@ func (uc *UseCases) GetArticlesList(ctx context.Context, page int) ([]domain.Art
 }
 
 func (uc *UseCases) EditArticle(art domain.Article) error {
+	err := uc.validate.Struct(art)
+	if err != nil {
+		return err
+	}
+
 	if err := uc.articleRepo.UpdateOne(art); err != nil {
 		return err
 	}

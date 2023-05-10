@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"os"
 	"strings"
 )
 
@@ -66,8 +65,7 @@ func (e *ElasticRepo) GetPaginateResults(take, skip int) (arts []domain.Article,
 		  ]
 	  }`, skip, take)
 
-	ES_ARTS := os.Getenv("ES_ARTS")
-	url := ES_ARTS + "_search"
+	url := e.index + "_search"
 	req, err := http.NewRequest("GET", url, strings.NewReader(payload))
 	if err != nil {
 		fmt.Println("func GetPaginateResults NewRequest error: ", err)
@@ -98,8 +96,7 @@ func (e *ElasticRepo) Count() int {
 	fmt.Println("func EsCountArticles -> start")
 	var count float64
 
-	ES_ARTS := os.Getenv("ES_ARTS")
-	url := ES_ARTS + "_count"
+	url := e.index + "_count"
 	es := make(map[string]interface{})
 	res, err := http.Get(url)
 	if err != nil {
@@ -157,8 +154,7 @@ func (e *ElasticRepo) EsInsertBulk(arts []domain.Article) error {
 }
 
 func (e *ElasticRepo) UpdateOne(art domain.Article) error {
-	ES_ARTS := os.Getenv("ES_ARTS")
-	url := ES_ARTS + "_doc/" + art.Id
+	url := e.index + "_doc/" + art.Id
 
 	body, err := json.Marshal(art)
 	if err != nil {
@@ -172,7 +168,7 @@ func (e *ElasticRepo) UpdateOne(art domain.Article) error {
 		fmt.Println("EsUpdateOne NewReader error", err)
 		return err
 	}
-	fmt.Printf("\n func EsUpdateOne --> URL %v, \n BODY %v \n", url, b)
+	// fmt.Printf("\n func EsUpdateOne --> URL %v, \n BODY %v \n", url, b)
 	req.Header.Add("Content-Type", "application/json")
 	res, err := http.DefaultClient.Do(req)
 	if err != nil || res.StatusCode != http.StatusOK {
@@ -180,15 +176,11 @@ func (e *ElasticRepo) UpdateOne(art domain.Article) error {
 		fmt.Println("func EsUpdateOne DO request error")
 		return err
 	}
-	resb, _ := io.ReadAll(res.Body)
-	fmt.Println(string(resb))
 	return nil
 }
 
 // SEARCH
 func (e *ElasticRepo) Search(query string, take int, skip int) (arts []domain.Article, hits int, err error) {
-	ES_ARTS := os.Getenv("ES_ARTS")
-
 	esres := &EsSearchResponse{}
 
 	data := fmt.Sprintf(`{
@@ -210,7 +202,7 @@ func (e *ElasticRepo) Search(query string, take int, skip int) (arts []domain.Ar
 		}
 	  }`, skip, take, query)
 
-	req, _ := http.NewRequest("GET", ES_ARTS+"_search", strings.NewReader(data))
+	req, _ := http.NewRequest("GET", e.index+"_search", strings.NewReader(data))
 	req.Header.Set("content-type", "application/json")
 
 	res, err := http.DefaultClient.Do(req)
