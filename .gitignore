@@ -1,2 +1,6 @@
 TODO
 http_ca.crt
+# golangci-lint binary
+bin/
+# golangci-lint cache
+.cache/
