@@ -17,34 +17,27 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/99designs/gqlgen/graphql/handler"
-	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/joho/godotenv"
 	"github.com/julienschmidt/httprouter"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-const PerPage int = 15
-const defaultGqlPort = "8080"
-
 func main() {
-	// LOAD ENV
 	godotenv.Load(".env")
-	MONGO_URL := os.Getenv("MONGO_URL")
-
-	gqlPort := os.Getenv("GQL_PORT")
-	if gqlPort == "" {
-		gqlPort = defaultGqlPort
-	}
 
 	// MONGO CONNECTION
+	mongoURL := os.Getenv("MONGO_URL")
+	timeoutSeconds := 10
+	timeoutDuration := time.Duration(timeoutSeconds) * time.Second
 	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1)
 	clientOptions := options.Client().
-		ApplyURI(MONGO_URL).
+		ApplyURI(mongoURL).
 		SetServerAPIOptions(serverAPIOptions)
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), timeoutDuration)
+
 	defer cancel()
+
 	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
 		log.Println("Mongo Connect error", err)
@@ -59,8 +52,8 @@ func main() {
 	usersRepo := mdb.NewUserRepo(usersColl)
 
 	// ELASTIC
-	ES_ARTS := os.Getenv("ES_ARTS")
-	searchRepo := es.NewElasticRepo(ES_ARTS)
+	esArts := os.Getenv("ES_ARTS")
+	searchRepo := es.NewElasticRepo(esArts)
 
 	// NEW SERVER
 	usecases := usecases.NewUseCases(articlesRepo, usersRepo, searchRepo)
@@ -72,9 +65,10 @@ func main() {
 	stopChan := make(chan bool)
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
+
 	go parser.StartParser(stopChan, wg)
 
-	//ROUTER
+	// ROUTER
 	router := httprouter.New()
 	// static files
 	router.ServeFiles("/static/*filepath", http.Dir("./static/"))
@@ -94,15 +88,12 @@ func main() {
 	router.POST("/register", server.Register)
 
 	// GraphQL
-	router.GET("/", playgroundHandler())
-	router.POST("/query", GraphqlHandler(resolver))
+	router.GET("/", server.PlaygroundHandler())
+	router.POST("/query", server.GraphqlHandler(resolver))
 
 	// start server
 	fmt.Println("Setrver starting at port 8088")
 
-	// ==============================
-	// gracefull shutdown http server
-	// ==============================
 	gracefulShutdown := make(chan os.Signal, 1)
 	signal.Notify(gracefulShutdown, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
@@ -111,47 +102,29 @@ func main() {
 		Handler: router,
 	}
 
-	go func() {
-		sigint := make(chan os.Signal, 1)
-		signal.Notify(sigint, os.Interrupt)
-		<-sigint
-		if err := httpServer.Shutdown(context.Background()); err != nil {
-			log.Printf("HTTP Server Shutdown Error: %v", err)
-		}
-
-		close(gracefulShutdown)
-	}()
+	httpServerShutdown(httpServer, gracefulShutdown)
 
 	if err := httpServer.ListenAndServe(); err != http.ErrServerClosed {
 		log.Fatalf("HTTP server ListenAndServe Error: %v", err)
 	}
 
 	<-gracefulShutdown
-	// ==============================
 	stopChan <- true
+
 	wg.Wait()
-	// defer time.Sleep(3 * time.Second)
 	fmt.Println("Shutdown gracefully")
 }
 
-func playgroundHandler() httprouter.Handle {
+func httpServerShutdown(httpServer http.Server, gracefulShutdown chan os.Signal) {
+	go func() {
+		sigint := make(chan os.Signal, 1)
+		signal.Notify(sigint, os.Interrupt)
+		<-sigint
 
-	ph := playground.Handler("My GraphQL playground", "/query")
+		if err := httpServer.Shutdown(context.Background()); err != nil {
+			log.Printf("HTTP Server Shutdown Error: %v", err)
+		}
 
-	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-		ph(w, r)
-	}
-}
-
-func GraphqlHandler(resolver *graph.Resolver) httprouter.Handle {
-
-	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{
-		Resolvers:  resolver,
-		Directives: graph.DirectiveRoot{},
-		Complexity: graph.ComplexityRoot{},
-	}))
-
-	return func(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
-		srv.ServeHTTP(w, req)
-	}
+		close(gracefulShutdown)
+	}()
 }

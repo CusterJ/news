@@ -23,6 +23,7 @@ func (s *Server) GetLogin(w http.ResponseWriter, r *http.Request, _ httprouter.P
 	tmpl, err := template.ParseFiles("static/pages/login.html")
 	if err != nil {
 		http.Error(w, "Something went wrong", http.StatusInternalServerError)
+
 		return
 	}
 
@@ -63,11 +64,14 @@ func (s *Server) PostLogin(w http.ResponseWriter, r *http.Request, _ httprouter.
 	if username == "" || password == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, "User name or password is empty.\n Name: %s\n Password: %s", username, password)
+
 		td := templateData{"error": bson.M{"login": "enter login", "password": "empty password"}}
+
 		b, err := json.Marshal(td)
 		if err != nil {
 			fmt.Println("func PostLogin handler -> Marshal Template Data error")
 		}
+
 		w.Write(b)
 		http.Redirect(w, r, "/login", http.StatusBadRequest)
 	}
@@ -76,6 +80,7 @@ func (s *Server) PostLogin(w http.ResponseWriter, r *http.Request, _ httprouter.
 	if err != nil {
 		fmt.Println("func PostLogin handler -> UserLogin error -> Redirect: ", err)
 		http.Redirect(w, r, "/login?form=error", http.StatusSeeOther)
+
 		return
 	}
 
@@ -83,15 +88,14 @@ func (s *Server) PostLogin(w http.ResponseWriter, r *http.Request, _ httprouter.
 
 	fmt.Printf("func PostLogin handler -> end \n User name: %s\n Password: %s\n", username, password)
 	http.Redirect(w, r, "/news", http.StatusSeeOther)
-
 }
 
 func (s *Server) Register(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	fmt.Println("func Register handler -> start")
 
-	err := r.ParseForm()
-	if err != nil {
+	if err := r.ParseForm(); err != nil {
 		fmt.Println("func Register handler -> ParseForm error")
+
 		return
 	}
 
@@ -100,7 +104,9 @@ func (s *Server) Register(w http.ResponseWriter, r *http.Request, _ httprouter.P
 
 	if len(username) < 3 || len(password) < 5 {
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "Name or passwrod lengh is wrong.\n Name: %s - len is %v \n Password: %s - len is %v", username, len(username), password, len(password))
+		fmt.Fprintf(w, "Name or passwrod lengh is wrong.\n Name: %s - len is %v \n Password: %s - len is %v",
+			username, len(username), password, len(password))
+
 		return
 	}
 
@@ -108,6 +114,7 @@ func (s *Server) Register(w http.ResponseWriter, r *http.Request, _ httprouter.P
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "Create new User error.\n Name: %s\n Age: %s", username, password)
+
 		return
 	}
 
@@ -117,17 +124,19 @@ func (s *Server) Register(w http.ResponseWriter, r *http.Request, _ httprouter.P
 }
 
 func (s *Server) Form(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	fmt.Println("func Form start")
 	if err := r.ParseForm(); err != nil {
 		fmt.Fprintf(w, "ParseForm() err: %v", err)
+
 		return
 	}
 
 	name := r.FormValue("name")
 	age := r.FormValue("age")
+
 	if name == "" || age == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, "No name or age.\n Name: %s\n Age: %s", name, age)
+
 		return
 	}
 
@@ -139,6 +148,7 @@ func (s *Server) Form(w http.ResponseWriter, r *http.Request, _ httprouter.Param
 
 func (s *Server) Hello(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	fmt.Fprintf(w, "hello, %s!\n", ps.ByName("name"))
+
 	for _, v := range ps {
 		fmt.Println(v)
 	}
@@ -149,16 +159,19 @@ func (s *Server) Hi(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 	fmt.Fprintf(w, "hello, %s!\n", name)
 }
 
-// REST API method
+// REST API method for take paginated articles.
 func (s *Server) GetNews(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	page := r.URL.Query().Get("page")
 	pg := 0
+
+	page := r.URL.Query().Get("page")
 	if page != "" {
 		page, err := strconv.Atoi(page)
 		if err != nil {
 			fmt.Fprint(w, "Bad page parameter", http.StatusBadRequest)
+
 			return
 		}
+
 		pg = page
 	}
 
@@ -182,17 +195,16 @@ func (s *Server) GetNews(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 	w.Write(jsonResp)
 }
 
-// REST API method
+// REST API method for get one aritcle by ID.
 func (s *Server) GetOneArticle(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	id := ps.ByName("id")
-	fmt.Println(id)
+
 	res, err := s.usecases.GetByID(r.Context(), id)
-	// TODO: remove prints
-	fmt.Println(r.Context())
 	if err != nil {
 		fmt.Println("No id in db. Error: ", err)
 		fmt.Fprint(w, err)
 		w.WriteHeader(http.StatusNoContent)
+
 		return
 	}
 
@@ -207,6 +219,7 @@ func (s *Server) GetOneArticle(w http.ResponseWriter, r *http.Request, ps httpro
 	if err != nil {
 		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
 	}
+
 	w.Write(jsonResp)
 }
 
@@ -220,17 +233,20 @@ func (s *Server) Search(w http.ResponseWriter, r *http.Request, ps httprouter.Pa
 	)
 	if err != nil {
 		http.Error(w, "Template error", http.StatusInternalServerError)
+
 		return
 	}
 
 	query := r.URL.Query().Get("query")
 
 	page := 1
+
 	pg := r.URL.Query().Get("page")
 	if pg != "" {
 		page, err = strconv.Atoi(pg)
 		if err != nil {
 			http.Error(w, "Bad page parameter", http.StatusInternalServerError)
+
 			return
 		}
 	} else {
@@ -263,14 +279,18 @@ func (s *Server) Search(w http.ResponseWriter, r *http.Request, ps httprouter.Pa
 func (s *Server) EditArticle(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	if err := r.ParseForm(); err != nil {
 		fmt.Fprintf(w, "ParseForm() err: %v", err)
+
 		return
 	}
+
 	title := r.PostForm.Get("title")
 	description := r.PostForm.Get("description")
 	id := ps.ByName("id")
+
 	if title == "" || description == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, "No title or description.\n Title: %s\n Description: %s", title, description)
+
 		return
 	}
 
@@ -279,7 +299,7 @@ func (s *Server) EditArticle(w http.ResponseWriter, r *http.Request, ps httprout
 	if err != nil {
 		w.WriteHeader(http.StatusNoContent)
 	}
-	// Replase Title and Description
+	// Replace Title and Description
 	art.Title.Short = title
 	art.Description.Long = description
 
@@ -295,9 +315,16 @@ func (s *Server) EditArticle(w http.ResponseWriter, r *http.Request, ps httprout
 func (s *Server) GetOneArticlePage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	edit := r.URL.Query().Get("edit")
 	td := templateData{}
-	tmpl, err := template.ParseFiles("static/pages/article.html", "static/partials/header.html", "static/partials/footer.html", "static/partials/head.html")
+
+	tmpl, err := template.ParseFiles(
+		"static/pages/article.html",
+		"static/partials/header.html",
+		"static/partials/footer.html",
+		"static/partials/head.html",
+	)
 	if err != nil {
 		http.Error(w, "Something went wrong", http.StatusInternalServerError)
+
 		return
 	}
 
@@ -312,11 +339,14 @@ func (s *Server) GetOneArticlePage(w http.ResponseWriter, r *http.Request, ps ht
 	}
 
 	id := ps.ByName("id")
+
 	res, err := s.usecases.GetByID(r.Context(), id)
 	if err != nil {
 		w.WriteHeader(http.StatusNoContent)
+
 		return
 	}
+
 	td["content"] = res
 
 	date := time.Unix(res.Dates.Posted, 0)
@@ -329,8 +359,6 @@ func (s *Server) GetOneArticlePage(w http.ResponseWriter, r *http.Request, ps ht
 }
 
 func (s *Server) GetNewsPage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	fmt.Println("func handler GetNewsPage ")
-
 	tmpl, err := template.ParseFiles(
 		"static/pages/news.html",
 		"static/partials/header.html",
@@ -340,6 +368,7 @@ func (s *Server) GetNewsPage(w http.ResponseWriter, r *http.Request, ps httprout
 	)
 	if err != nil {
 		http.Error(w, "Something with template went wrong", http.StatusInternalServerError)
+
 		return
 	}
 
@@ -351,11 +380,13 @@ func (s *Server) GetNewsPage(w http.ResponseWriter, r *http.Request, ps httprout
 	}
 
 	page := 1
+
 	pg := r.URL.Query().Get("page")
 	if pg != "" {
 		page, err = strconv.Atoi(pg)
 		if err != nil {
 			fmt.Fprint(w, "Bad page parameter", http.StatusBadRequest)
+
 			return
 		}
 	} else {
@@ -365,8 +396,10 @@ func (s *Server) GetNewsPage(w http.ResponseWriter, r *http.Request, ps httprout
 	arts, err := s.usecases.GetArticlesList(r.Context(), page)
 	if err != nil {
 		http.Error(w, "Something went wrong", http.StatusInternalServerError)
+
 		return
 	}
+
 	td["data"] = arts
 
 	total, err := s.usecases.Count(r.Context())

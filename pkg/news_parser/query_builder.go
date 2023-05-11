@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-// Query for get list of articles IDs
+// Query for get list of articles IDs.
 type PointQuery struct {
 	Query     string  `json:"query,omitempty"`
 	Variables VarNews `json:"variables,omitempty"`
@@ -19,7 +19,7 @@ type VarNews struct {
 	DateTo    int64  `json:"dateTo"`
 }
 
-// Query for get one article by ID
+// Query for get one article by ID.
 type ArtQuery struct {
 	Query     string     `json:"query,omitempty"`
 	Variables VarArticle `json:"variables,omitempty"`
@@ -40,10 +40,12 @@ func newsQuery(take int, skip int, dateTo int64) string {
 			DateTo:    dateTo,
 		},
 	}
+
 	query, err := json.Marshal(q)
 	if err != nil {
 		return fmt.Sprint(err)
 	}
+
 	return string(query)
 }
 
@@ -54,9 +56,11 @@ func articleQuery(id string) string {
 			Id: id,
 		},
 	}
+
 	query, err := json.Marshal(q)
 	if err != nil {
 		return fmt.Sprint(err)
 	}
+
 	return string(query)
 }

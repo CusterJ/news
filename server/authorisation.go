@@ -1,7 +1,7 @@
 package server
 
 import (
-	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
@@ -12,10 +12,12 @@ func (s *Server) Protected(h httprouter.Handle) httprouter.Handle {
 		_, ok := s.usecases.VerifyAuthCookies(r)
 
 		if !ok {
-			fmt.Println("Check Auth - cookie error")
+			log.Println("Check Auth - cookie error")
 			http.Error(w, "cookie error -> FORBIDDEN", http.StatusForbidden)
+
 			return
 		}
+
 		h(w, r, ps)
 	}
 }

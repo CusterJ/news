@@ -5,34 +5,44 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
 )
 
 func getArticles(list []string) (news []domain.Article) {
-	// fmt.Println("func GetArticles from", list)
-
 	for _, id := range list {
-		news = append(news, getArticle(id))
+		art, err := getArticle(id)
+		if err != nil {
+			log.Println("error get article from site: ", err)
+
+			continue
+		}
+
+		news = append(news, art)
 	}
+
 	return
 }
 
-func getArticle(id string) (adb domain.Article) {
+func getArticle(id string) (adb domain.Article, err error) {
 	ArticlePayload := strings.NewReader(articleQuery(id))
-	req, err := http.NewRequest("POST", Url, ArticlePayload)
+
+	req, err := http.NewRequest(http.MethodPost, Url, ArticlePayload)
 	if err != nil {
 		fmt.Println("Wrap request error", err)
-		panic(err)
+
+		return adb, err
 	}
 
 	req.Header.Add("Content-Type", "application/json")
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		fmt.Println("Requerst error, stop program")
-		panic(err)
+		log.Println("Requerst for article error: ", err)
+
+		return adb, err
 	}
 
 	defer res.Body.Close()
@@ -41,6 +51,7 @@ func getArticle(id string) (adb domain.Article) {
 	// fmt.Println(string(body))
 
 	data := domain.Data{}
+
 	err = json.Unmarshal([]byte(body), &data)
 	if err != nil {
 		fmt.Println("Unmarshaling Article error ", err)
@@ -60,5 +71,5 @@ func getArticle(id string) (adb domain.Article) {
 
 	adb.Dates.Posted = int64(dateTS)
 
-	return
+	return adb, err
 }

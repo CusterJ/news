@@ -13,6 +13,7 @@ func (uc *UseCases) GetByID(ctx context.Context, id string) (domain.Article, err
 
 func (uc *UseCases) GetArticlesList(ctx context.Context, page int) ([]domain.Article, error) {
 	skip := 0
+
 	take, err := strconv.Atoi(os.Getenv("TAKE"))
 	if err != nil {
 		take = 15 // set default
@@ -34,14 +35,17 @@ func (uc *UseCases) EditArticle(art domain.Article) error {
 	if err := uc.articleRepo.UpdateOne(art); err != nil {
 		return err
 	}
+
 	if err := uc.searchRepo.UpdateOne(art); err != nil {
 		return err
 	}
+
 	return nil
 }
 
 func (uc *UseCases) Search(ctx context.Context, query string, page int) (arts []domain.Article, hits int, err error) {
 	skip := 0
+
 	take, err := strconv.Atoi(os.Getenv("TAKE"))
 	if err != nil {
 		take = 15 // set default

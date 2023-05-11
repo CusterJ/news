@@ -49,6 +49,7 @@ func (uc *UseCases) UserLogin(username, password, useragent string) (ac http.Coo
 	passwordEnc := base64.URLEncoding.EncodeToString(pwSignature)
 
 	fmt.Printf("User mdbs password: %v\n User form password: %v\n", user.Password, passwordEnc)
+
 	if user.Password != passwordEnc {
 		return ac, fmt.Errorf("login error => incorrect password")
 	}
@@ -66,6 +67,7 @@ func (uc *UseCases) UserSave(username, password, useragent string) (ac http.Cook
 		fmt.Println("func UserSave -> ERROR READING SECRET_KEY -> key empty")
 		log.Panic("func UserSave -> log.PANIC -> key empty")
 	}
+
 	secretKey := []byte(sk)
 	mac := hmac.New(sha256.New, secretKey)
 
@@ -112,7 +114,7 @@ func (uc *UseCases) UserSave(username, password, useragent string) (ac http.Cook
 func (uc *UseCases) GenerateAuthCookie(username, id, useragent string) (cookie http.Cookie, err error) {
 	fmt.Println("func SetAuthCookie -> start")
 
-	// TODO save sign of user-agent as value of UserAgent
+	// Or save sign of user-agent as value of UserAgent
 	ac := AuthCookie{
 		ID:        id,
 		Username:  username,
@@ -129,6 +131,7 @@ func (uc *UseCases) GenerateAuthCookie(username, id, useragent string) (cookie h
 		fmt.Println("func ReadAuthCookies -> ERROR READING SECRET_KEY -> key empty")
 		log.Panic("func ReadAuthCookies -> log.PANIC -> key empty")
 	}
+
 	secretKey := []byte(sk)
 	mac := hmac.New(sha256.New, secretKey)
 
@@ -139,15 +142,17 @@ func (uc *UseCases) GenerateAuthCookie(username, id, useragent string) (cookie h
 	fmt.Println("func SetAuthCookie -> eVal -> ", eVal)
 
 	cookie = http.Cookie{
-		Name:     "auth",
-		Value:    eVal,
-		Path:     "/",
-		MaxAge:   3600,
+		Name:   "auth",
+		Value:  eVal,
+		Path:   "/",
+		MaxAge: 3600,
+		// MaxAge:   int(time.Hour),
 		HttpOnly: false,
 		Secure:   false,
 		SameSite: http.SameSiteLaxMode,
 	}
 	fmt.Println("func SetAuthCookie", cookie)
+
 	return cookie, nil
 }
 
@@ -158,7 +163,6 @@ func (uc *UseCases) VerifyAuthCookies(r *http.Request) (ac AuthCookie, ok bool) 
 
 	ac, ok = uc.ReadAuthCookies(r)
 	if !ok {
-
 		return ac, false
 	}
 
@@ -166,6 +170,7 @@ func (uc *UseCases) VerifyAuthCookies(r *http.Request) (ac AuthCookie, ok bool) 
 	if ex && user.ID == ac.ID && ac.UserAgent == r.UserAgent() {
 		return ac, true
 	}
+
 	return
 }
 
@@ -174,31 +179,36 @@ func (uc *UseCases) ReadAuthCookies(r *http.Request) (ac AuthCookie, ok bool) {
 
 	auth, err := r.Cookie("auth")
 	if err != nil {
-		fmt.Println("func ReadAuthCookies -> read auth cookie from req error: ", err)
+		log.Println("func ReadAuthCookies -> read auth cookie from req error: ", err)
+
 		return ac, false
 	}
 
 	av, err := base64.URLEncoding.DecodeString(auth.Value)
 	if err != nil {
-		fmt.Println("func GetAuthCookies -> Decode error")
+		log.Println("func GetAuthCookies -> Decode error")
+
 		return ac, false
 	}
 
 	err = json.Unmarshal(av[sha256.Size:], &ac)
 	if err != nil {
-		fmt.Println("func ReadAuthCookies -> Unmarshal error")
+		log.Println("func ReadAuthCookies -> Unmarshal error")
+
 		return ac, false
 	}
 
-	// read curent UserAgent and add it to the cookie to compare hmac signature
-	fmt.Printf("Cookie user-agent: %s\nCurent user-agent: %s\n", ac.UserAgent, r.UserAgent())
+	// read current UserAgent and add it to the cookie to compare hmac signature
+	fmt.Printf("Cookie user-agent: %s\nCurrent user-agent: %s\n", ac.UserAgent, r.UserAgent())
+
 	ac.UserAgent = r.UserAgent()
+
 	marshaledAC, err := json.Marshal(ac)
 	if err != nil {
 		return ac, false
 	}
 
-	// generate hmac cookie signature with curent user agent
+	// generate hmac cookie signature with current user agent
 	sk := os.Getenv("SECRET_KEY")
 	if sk == "" {
 		fmt.Println("func ReadAuthCookies -> ERROR READING SECRET_KEY -> key empty")
@@ -211,7 +221,7 @@ func (uc *UseCases) ReadAuthCookies(r *http.Request) (ac AuthCookie, ok bool) {
 	mac.Write(marshaledAC)
 	expectedMAC := mac.Sum(nil)
 
-	// compare original cookie hmac and hmac with curent user agent
+	// compare original cookie hmac and hmac with current user agent
 	macOk := hmac.Equal(av[:sha256.Size], expectedMAC)
 	fmt.Printf("macOK: %v, \n av: %v\n em: %v\n", macOk, av[:sha256.Size], expectedMAC)
 
@@ -220,5 +230,6 @@ func (uc *UseCases) ReadAuthCookies(r *http.Request) (ac AuthCookie, ok bool) {
 	}
 
 	fmt.Println("func ReadAuthCookies -> end -> cookie ", ac.Username, ac.ID)
+
 	return ac, true
 }

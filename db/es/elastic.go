@@ -55,7 +55,7 @@ func NewElasticRepo(index string) *ElasticRepo {
 	return &ElasticRepo{index: index}
 }
 
-// ES take articles from page
+// ES take articles from page.
 func (e *ElasticRepo) GetPaginateResults(take, skip int) (arts []domain.Article, err error) {
 	payload := fmt.Sprintf(`{
 		"from": %v,
@@ -66,11 +66,14 @@ func (e *ElasticRepo) GetPaginateResults(take, skip int) (arts []domain.Article,
 	  }`, skip, take)
 
 	url := e.index + "_search"
-	req, err := http.NewRequest("GET", url, strings.NewReader(payload))
+
+	req, err := http.NewRequest(http.MethodGet, url, strings.NewReader(payload))
 	if err != nil {
 		fmt.Println("func GetPaginateResults NewRequest error: ", err)
 	}
+
 	req.Header.Add("Content-Type", "application/json")
+
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		fmt.Println("func GetPaginateResults Do(req) error: ", err)
@@ -80,27 +83,32 @@ func (e *ElasticRepo) GetPaginateResults(take, skip int) (arts []domain.Article,
 	// fmt.Printf("func GetPaginateResults response from ES body: %s \n", body)
 	esres := &EsSearchResponse{}
 	err = json.Unmarshal(body, esres)
+
 	if err != nil {
 		fmt.Println("Unmarshaling GetPaginateResults error ", err)
+
 		return
 	}
+
 	for _, v := range esres.Hits.Hits {
 		// fmt.Printf("\n ---\n esres.Hits.Hits: %#v \n ---\n", v.Source.Data)
 		arts = append(arts, v.Source)
 	}
+
 	return arts, nil
 }
 
-// ES count articles
+// ES count articles.
 func (e *ElasticRepo) Count() int {
 	fmt.Println("func EsCountArticles -> start")
-	var count float64
 
 	url := e.index + "_count"
 	es := make(map[string]interface{})
+
 	res, err := http.Get(url)
 	if err != nil {
 		log.Println("func EsCountArticles Get count error")
+
 		return 0
 	}
 
@@ -109,16 +117,23 @@ func (e *ElasticRepo) Count() int {
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		log.Println("func Count ES *Articles -> read respons error")
+
 		return 0
 	}
+
 	err = json.Unmarshal(body, &es)
+
 	if err != nil {
 		log.Println("func EsCountArticles Unmarshal response from ES error")
+
 		return 0
 	}
+
 	count, ok := es["count"].(float64)
+
 	if !ok {
 		log.Println("func EsCountArticles type assertion response from ES error")
+
 		return 0
 	}
 
@@ -127,6 +142,7 @@ func (e *ElasticRepo) Count() int {
 
 func (e *ElasticRepo) EsInsertBulk(arts []domain.Article) error {
 	var data string
+
 	for _, a := range arts {
 		indexId := fmt.Sprintf(`{ "index": { "_id": "%s" }}`, a.Id)
 		request, _ := json.Marshal(a)
@@ -134,20 +150,25 @@ func (e *ElasticRepo) EsInsertBulk(arts []domain.Article) error {
 	}
 
 	url := e.index + "_bulk"
-	fmt.Println(url)
-	req, err := http.NewRequest("POST", url, strings.NewReader(data))
+
+	req, err := http.NewRequest(http.MethodPost, url, strings.NewReader(data))
 	if err != nil {
 		fmt.Println("func EsInsertBulk: create new req error")
+
 		return err
 	}
+
 	req.Header.Add("Content-Type", "application/json")
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		fmt.Println("func EsInsertBulk: Requerst error")
+
 		return err
 	}
+
 	fmt.Println("func EsInsertBulk: ES respons", res.StatusCode)
+
 	defer res.Body.Close()
 
 	return nil
@@ -159,27 +180,33 @@ func (e *ElasticRepo) UpdateOne(art domain.Article) error {
 	body, err := json.Marshal(art)
 	if err != nil {
 		fmt.Println("EsUpdateOne json.Marshal error", err)
+
 		return err
 	}
 
 	b := strings.NewReader(string(body))
-	req, err := http.NewRequest("PUT", url, b)
+
+	req, err := http.NewRequest(http.MethodPut, url, b)
 	if err != nil {
 		fmt.Println("EsUpdateOne NewReader error", err)
+
 		return err
 	}
 	// fmt.Printf("\n func EsUpdateOne --> URL %v, \n BODY %v \n", url, b)
 	req.Header.Add("Content-Type", "application/json")
 	res, err := http.DefaultClient.Do(req)
+
 	if err != nil || res.StatusCode != http.StatusOK {
 		// Aditional add check response that  "result": "updated"
 		fmt.Println("func EsUpdateOne DO request error")
+
 		return err
 	}
+
 	return nil
 }
 
-// SEARCH
+// Elastic multi match fields search with sort by post date.
 func (e *ElasticRepo) Search(query string, take int, skip int) (arts []domain.Article, hits int, err error) {
 	esres := &EsSearchResponse{}
 
@@ -202,7 +229,7 @@ func (e *ElasticRepo) Search(query string, take int, skip int) (arts []domain.Ar
 		}
 	  }`, skip, take, query)
 
-	req, _ := http.NewRequest("GET", e.index+"_search", strings.NewReader(data))
+	req, _ := http.NewRequest(http.MethodGet, e.index+"_search", strings.NewReader(data))
 	req.Header.Set("content-type", "application/json")
 
 	res, err := http.DefaultClient.Do(req)
@@ -213,9 +240,11 @@ func (e *ElasticRepo) Search(query string, take int, skip int) (arts []domain.Ar
 	defer res.Body.Close()
 
 	body, _ := io.ReadAll(res.Body)
+
 	err = json.Unmarshal(body, esres)
 	if err != nil {
 		fmt.Println("Unmarshaling EsSearchArticle error ", err)
+
 		return nil, 0, err
 	}
 
@@ -228,13 +257,13 @@ func (e *ElasticRepo) Search(query string, take int, skip int) (arts []domain.Ar
 	return arts, hits, nil
 }
 
-// ES create index
+// ES create index.
 func EsCreateIndex(index string) error {
 	return nil
 }
 
-// Mapping
-func (e *ElasticRepo) CreateArticlesIndexSettingsAndMapping() error {
+// Create Elastic Articles Index, settings, mapping.
+func (e *ElasticRepo) CreateArticlesIndex() error {
 	mapUrl := e.url + e.index
 	mp := `{
 		"settings": {
@@ -301,7 +330,15 @@ func (e *ElasticRepo) CreateArticlesIndexSettingsAndMapping() error {
 		}
 	  }`
 
-	req, _ := http.NewRequest("PUT", mapUrl, strings.NewReader(mp))
-	http.DefaultClient.Do(req)
+	req, err := http.NewRequest(http.MethodPut, mapUrl, strings.NewReader(mp))
+	if err != nil {
+		return err
+	}
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil || res.StatusCode != 200 {
+		return fmt.Errorf("create Elastic index returns not 200 or error: %s", err)
+	}
+
 	return nil
 }

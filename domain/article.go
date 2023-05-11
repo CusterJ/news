@@ -14,5 +14,6 @@ type Description struct {
 	Long string `json:"long" validate:"required,min=10"`
 }
 type Dates struct {
-	Posted int64 `json:"posted" validate:"required,gt=1577840461"` // Date and time (GMT): Wednesday, January 1, 2020 1:01:01 AM
+	Posted int64 `json:"posted" validate:"required,gt=1577840461"`
+	// Date and time (GMT): Wednesday, January 1, 2020 1:01:01 AM
 }
